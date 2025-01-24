@@ -47,3 +47,9 @@
 「简简单单的看直播」，可以看 B 站、虎牙、斗鱼、抖音直播，TV 版本和手机版都有，GitHub 上免费开源；
 
 - Simple Live：https://github.com/xiaoyaocz/dart_simple_live
+
+
+
+## 8.2024最新TVBOX保姆级使用教程
+
+https://www.zmnav.cn/959.html
