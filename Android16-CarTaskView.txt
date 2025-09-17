@@ -1,0 +1,54 @@
+
+TAG: CAR.AM|CarSystemUIProxyImpl|RemoteCarTaskViewServerImpl
+
+TAG: CAR.AM|CarTaskViewController
+
+//------------------------------------------------------------------//
+// CarLauncher进程
+
+CarLauncher.java#
+		new CarLauncherViewModelFactory(this, getMapsIntent()))   -> new CarLauncherViewModel()
+
+CarLauncherViewModel.java#
+		new CarLauncherViewModel()
+		initializeRemoteCarTaskView()
+
+CarLauncherViewModel.java#
+	initializeRemoteCarTaskView()
+	mCarActivityManager.getCarTaskViewController(  -> new CarTaskViewControllerSupervisor()
+
+
+CarTaskViewControllerSupervisor.java#
+	mCarTaskViewControllerSupervisor.createCarTaskViewController() 和systemui交互
+	onConnected(ICarSystemUIProxy carSystemUIProxy)   拿到systemui的代理
+	onCarSystemUIConnected(ICarSystemUIProxy systemUIProxy) -> new CarTaskViewController()
+	mCarTaskViewControllerCallback.onConnected(mCarTaskViewController);  这里调用了CarLauncherViewModel.java#CarTaskViewControllerCallbackImpl.java->onConnected()  创建taskview
+	
+
+CarTaskViewController.java#
+	createControlledRemoteCarTaskView()
+	(CarSystemUIProxyAidlWrapper)mService.createControlledCarTaskView() // 将自己的代理传给systemui进程，交互
+
+
+ControlledRemoteCarTaskView.java#->super(context);->RemoteCarTaskView.java# 这里会创建RemoteCarTaskView并注册surfaceview的回调
+	mCallback.onTaskViewCreated(this)
+
+RemoteCarTaskView.java#
+	getHolder().addCallback(mSurfaceCallbackHandler);   其中包含：ICarTaskViewHost.aidl，用ICarTaskViewHost和服务CarTaskViewHostAidlToImplAdapter进行交流，
+	                                                    最终操作RemoteCarTaskViewServerImpl
+	
+
+//----------------------------------------------------------------//
+// CarSystemUI 进程
+CarSystemUIProxyImpl.java   创建car,并等待创建taskview
+
+CarSystemUIProxyAidlWrapper.java#
+
+
+CarTaskViewHostAidlToImplAdapter.java   ICarTaskViewHost host的服务端
+
+
+TaskViewTaskController.java 管理surface
+
+	
+		
