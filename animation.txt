@@ -1,13 +1,18 @@
 
+// system_server
 Transition.java#
-	onTransitionReady()
+	-> onTransitionReady()
 
-TransitionController  
-
-
+TransitionController.java
 
 
-//
+
+
+//  WindowManager-Shell
+Transitions.java#
+	-> onInit()
+	-> mOrganizer.registerTransitionPlayer(mPlayerImpl)
+
 Transitions.java#
 	TransitionPlayerImpl.java#
 		onTransitionReady()
