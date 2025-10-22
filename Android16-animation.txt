@@ -16,3 +16,8 @@ Transitions.java#
 Transitions.java#
 	TransitionPlayerImpl.java#
 		onTransitionReady()
+		dispatchReady(active)
+		processReadyQueue(track):872
+		playTransitionWithTracing(ready):932
+		playTransition(active)
+		setupAnimHierarchy(active.mInfo, active.mStartT, active.mFinishT)   挂载有关
