@@ -19,5 +19,18 @@ Transitions.java#
 		dispatchReady(active)
 		processReadyQueue(track):872
 		playTransitionWithTracing(ready):932
-		playTransition(active)
+		playTransition(active)   ----------------> 此处会调用startAnimation(),执行动画
 		setupAnimHierarchy(active.mInfo, active.mStartT, active.mFinishT)   挂载有关
+
+
+
+
+
+// 以自有窗口为例：
+
+CaptionWindowDecorViewModel.java
+	setFreeformTaskTransitionStarter() // 创建FreeformTaskTransitionHandler.java ,此类会执行开始动画等一些操作
+
+
+FreeformTaskTransitionObserver.java  做一些动画前置操作
+
