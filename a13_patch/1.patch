@@ -1,0 +1,441 @@
+diff --git a/core/java/android/app/Activity.java b/core/java/android/app/Activity.java
+index 7ae045d46c46..f8ddbf736fe8 100644
+--- a/core/java/android/app/Activity.java
++++ b/core/java/android/app/Activity.java
+@@ -752,8 +752,8 @@ public class Activity extends ContextThemeWrapper
+         OnCreateContextMenuListener, ComponentCallbacks2,
+         Window.OnWindowDismissedCallback,
+         ContentCaptureManager.ContentCaptureClient {
+-    private static final String TAG = "Activity";
+-    private static final boolean DEBUG_LIFECYCLE = false;
++    private static final String TAG = "Activity_";
++    private static final boolean DEBUG_LIFECYCLE = true;
+ 
+     /** Standard activity result: operation canceled. */
+     public static final int RESULT_CANCELED    = 0;
+diff --git a/core/java/android/app/ActivityThread.java b/core/java/android/app/ActivityThread.java
+index e01de41f5075..0b55883fdb37 100644
+--- a/core/java/android/app/ActivityThread.java
++++ b/core/java/android/app/ActivityThread.java
+@@ -663,7 +663,7 @@ public final class ActivityThread extends ClientTransactionHandler
+                                 "Received config update for non-existing activity");
+                     }
+                     int mWindowingMode = overrideConfig.windowConfiguration.getWindowingMode();
+-                    Log.e(TAG, "test123 onConfigurationChanged:  return  "+activity + " mWindowingMode = "+mWindowingMode);
++                    Log.e(TAG, "test123 onConfigurationChanged:   "+activity + " mWindowingMode = "+mWindowingMode);
+                     activity.mMainThread.handleActivityConfigurationChanged(
+                             ActivityClientRecord.this, overrideConfig, newDisplayId);
+                 }
+diff --git a/core/java/android/view/SurfaceControl.java b/core/java/android/view/SurfaceControl.java
+index 92bdfdd4c558..76975e917446 100644
+--- a/core/java/android/view/SurfaceControl.java
++++ b/core/java/android/view/SurfaceControl.java
+@@ -96,7 +96,7 @@ import java.util.function.Consumer;
+  * from the parent, as if the child were content in the parents buffer stream.
+  */
+ public final class SurfaceControl implements Parcelable {
+-    private static final String TAG = "SurfaceControl";
++    private static final String TAG = "SurfaceControl_";
+ 
+     private static native long nativeCreate(SurfaceSession session, String name,
+             int w, int h, int format, int flags, long parentObject, Parcel metadata)
+@@ -1544,6 +1544,7 @@ public final class SurfaceControl implements Parcelable {
+         }
+ 
+         mName = name;
++        Log.e(TAG, "SurfaceControl: " + name + "  parent = "+parent);
+         mWidth = w;
+         mHeight = h;
+         mLocalOwnerView = localOwnerView;
+@@ -2854,6 +2855,7 @@ public final class SurfaceControl implements Parcelable {
+          * @hide
+          */
+         public void apply(boolean sync) {
++            Log.e("test12345", "apply: ========================================== ",new Exception());
+             applyResizedSurfaces();
+             notifyReparentedSurfaces();
+             nativeApplyTransaction(mNativeObject, sync);
+@@ -2866,6 +2868,7 @@ public final class SurfaceControl implements Parcelable {
+             for (int i = mResizedSurfaces.size() - 1; i >= 0; i--) {
+                 final Point size = mResizedSurfaces.valueAt(i);
+                 final SurfaceControl surfaceControl = mResizedSurfaces.keyAt(i);
++                Log.e("test12345", "applyResizedSurfaces: surfaceControl = " + surfaceControl);
+                 synchronized (surfaceControl.mLock) {
+                     surfaceControl.resize(size.x, size.y);
+                 }
+@@ -2880,6 +2883,7 @@ public final class SurfaceControl implements Parcelable {
+             final int reparentCount = mReparentedSurfaces.size();
+             for (int i = reparentCount - 1; i >= 0; i--) {
+                 final SurfaceControl child = mReparentedSurfaces.keyAt(i);
++                Log.e("test12345", "notifyReparentedSurfaces: surfaceControl = " + child);
+                 synchronized (child.mLock) {
+                     final int listenerCount = (child.mReparentListeners != null)
+                             ? child.mReparentListeners.size() : 0;
+diff --git a/core/java/com/android/internal/protolog/ProtoLogGroup.java b/core/java/com/android/internal/protolog/ProtoLogGroup.java
+index 3a414db4a723..84c771d25677 100644
+--- a/core/java/com/android/internal/protolog/ProtoLogGroup.java
++++ b/core/java/com/android/internal/protolog/ProtoLogGroup.java
+@@ -34,7 +34,7 @@ public enum ProtoLogGroup implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_RESIZE(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_ADD_REMOVE(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_ADD_REMOVE(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_CONFIGURATION(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+@@ -48,13 +48,13 @@ public enum ProtoLogGroup implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_LOCKTASK(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_STATES(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_STATES(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_TASKS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+     WM_DEBUG_STARTING_WINDOW(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+-    WM_SHOW_TRANSACTIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_SHOW_TRANSACTIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_SHOW_SURFACE_ALLOC(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/freeform/FreeformTaskListener.java b/libs/WindowManager/Shell/src/com/android/wm/shell/freeform/FreeformTaskListener.java
+index 48487bc4a3d6..207cd9c454f9 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/freeform/FreeformTaskListener.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/freeform/FreeformTaskListener.java
+@@ -19,6 +19,7 @@ package com.android.wm.shell.freeform;
+ import static com.android.wm.shell.ShellTaskOrganizer.TASK_LISTENER_TYPE_FREEFORM;
+ 
+ import android.app.ActivityManager.RunningTaskInfo;
++import android.util.Log;
+ import android.util.SparseArray;
+ import android.view.SurfaceControl;
+ 
+@@ -78,6 +79,7 @@ public class FreeformTaskListener implements ShellTaskOrganizer.TaskListener,
+         if (mTasks.get(taskInfo.taskId) != null) {
+             throw new IllegalStateException("Task appeared more than once: #" + taskInfo.taskId);
+         }
++        Log.e(TAG, "onTaskAppeared: "+taskInfo);
+         ProtoLog.v(ShellProtoLogGroup.WM_SHELL_TASK_ORG, "Freeform Task Appeared: #%d",
+                 taskInfo.taskId);
+         final State state = new State();
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/WindowDecoration.java b/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/WindowDecoration.java
+index f8e6ecc4499a..6b2f3bdfa603 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/WindowDecoration.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/WindowDecoration.java
+@@ -24,6 +24,7 @@ import android.graphics.Color;
+ import android.graphics.PixelFormat;
+ import android.graphics.Point;
+ import android.graphics.Rect;
++import android.util.Log;
+ import android.view.Display;
+ import android.view.InsetsState;
+ import android.view.LayoutInflater;
+@@ -318,6 +319,8 @@ public abstract class WindowDecoration<T extends View & TaskFocusStateConsumer>
+         startT.show(mTaskSurface);
+         finishT.setPosition(mTaskSurface, taskPosition.x, taskPosition.y)
+                 .setCrop(mTaskSurface, mTaskSurfaceCrop);
++
++        Log.e("test12345", "relayout: >>>>>>>   " +mTaskSurface);
+     }
+ 
+     /**
+diff --git a/services/core/java/com/android/server/wm/ActivityRecord.java b/services/core/java/com/android/server/wm/ActivityRecord.java
+index 5c07f3544833..d6b7a00110c7 100644
+--- a/services/core/java/com/android/server/wm/ActivityRecord.java
++++ b/services/core/java/com/android/server/wm/ActivityRecord.java
+@@ -7215,6 +7215,9 @@ final class ActivityRecord extends WindowToken implements WindowManagerService.A
+             boolean processRunning, boolean startActivity, ActivityRecord sourceRecord,
+             ActivityOptions candidateOptions) {
+         Log.e(TAG, "showStartingWindow: 拦截 StartingWindow");
++        if (true){
++            return;
++        }
+ 
+         if (mTaskOverlay) {
+             // We don't show starting window for overlay activities.
+diff --git a/services/core/java/com/android/server/wm/ActivityStarter.java b/services/core/java/com/android/server/wm/ActivityStarter.java
+index d1a5ead78af2..3d7c26ded794 100644
+--- a/services/core/java/com/android/server/wm/ActivityStarter.java
++++ b/services/core/java/com/android/server/wm/ActivityStarter.java
+@@ -117,6 +117,7 @@ import android.os.UserHandle;
+ import android.os.UserManager;
+ import android.service.voice.IVoiceInteractionSession;
+ import android.text.TextUtils;
++import android.util.Log;
+ import android.util.Pools.SynchronizedPool;
+ import android.util.Slog;
+ import android.window.RemoteTransition;
+@@ -1203,6 +1204,7 @@ class ActivityStarter {
+                 .setSourceRecord(sourceRecord)
+                 .build();
+ 
++        Log.e(TAG, "executeRequest: ActivityRecord 创建");
+         mLastStartActivityRecord = r;
+ 
+         if (r.appTimeTracker == null && sourceRecord != null) {
+@@ -2745,6 +2747,7 @@ class ActivityStarter {
+         }
+         if (mStartActivity.getTaskFragment() == null
+                 || mStartActivity.getTaskFragment() == newParent) {
++            // 将 ActivityRecord挂在到新创建的Task中，并且是顶部
+             newParent.addChild(mStartActivity, POSITION_TOP);
+         } else {
+             mStartActivity.reparent(newParent, newParent.getChildCount() /* top */, reason);
+diff --git a/services/core/java/com/android/server/wm/DisplayContent.java b/services/core/java/com/android/server/wm/DisplayContent.java
+index 8934ff9a3100..019e07b7c096 100644
+--- a/services/core/java/com/android/server/wm/DisplayContent.java
++++ b/services/core/java/com/android/server/wm/DisplayContent.java
+@@ -198,6 +198,7 @@ import android.util.ArraySet;
+ import android.util.DisplayMetrics;
+ import android.util.DisplayUtils;
+ import android.util.IntArray;
++import android.util.Log;
+ import android.util.RotationUtils;
+ import android.util.Size;
+ import android.util.Slog;
+@@ -5229,7 +5230,9 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
+         if (child == null) {
+             return b;
+         }
+-
++        if (child instanceof WindowState){
++            Log.e("test12345", "makeChildSurface: " + child.getName() + "  "+mSurfaceControl);
++        }
+         return b.setName(child.getName())
+                 .setParent(mSurfaceControl);
+     }
+diff --git a/services/core/java/com/android/server/wm/Task.java b/services/core/java/com/android/server/wm/Task.java
+index f5c44d94160b..de2f29512006 100644
+--- a/services/core/java/com/android/server/wm/Task.java
++++ b/services/core/java/com/android/server/wm/Task.java
+@@ -167,6 +167,7 @@ import android.provider.Settings;
+ import android.service.voice.IVoiceInteractionSession;
+ import android.util.ArraySet;
+ import android.util.DisplayMetrics;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.TypedXmlPullParser;
+ import android.util.TypedXmlSerializer;
+@@ -4549,6 +4550,11 @@ class Task extends TaskFragment {
+      * @param creating {@code true} if this is being run during task construction.
+      */
+     void setWindowingMode(int preferredWindowingMode, boolean creating) {
++        Log.e("test12345", "setWindowingMode: preferredWindowingMode = "+preferredWindowingMode + "  creating = "+creating);
++        if(preferredWindowingMode == 5){
++            SurfaceControl.Transaction syncTransaction = getSyncTransaction();
++            syncTransaction.setCornerRadius(getSurfaceControl(),100).apply();
++        }
+         mWmService.inSurfaceTransaction(() -> setWindowingModeInSurfaceTransaction(
+                 preferredWindowingMode, creating));
+     }
+diff --git a/services/core/java/com/android/server/wm/TaskDisplayArea.java b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+index 03dbf6095da8..292cc54e2d4f 100644
+--- a/services/core/java/com/android/server/wm/TaskDisplayArea.java
++++ b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+@@ -46,6 +46,7 @@ import android.content.res.Configuration;
+ import android.graphics.Color;
+ import android.os.UserHandle;
+ import android.util.IntArray;
++import android.util.Log;
+ import android.util.Slog;
+ import android.view.RemoteAnimationTarget;
+ import android.view.SurfaceControl;
+@@ -922,6 +923,7 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+             }
+             return candidateTask.getRootTask();
+         }
++        Log.e("test123", "getOrCreateRootTask: 创建 task ");
+         return new Task.Builder(mAtmService)
+                 .setWindowingMode(windowingMode)
+                 .setActivityType(activityType)
+@@ -1273,6 +1275,22 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+         forAllLeafTasks(leafTask -> {
+             // Check if the direct child resumed activity in the leaf task needed to be paused if
+             // the leaf task is not a leaf task fragment.
++            if (resuming.getConfiguration().windowConfiguration.getWindowingMode() == 5){
++                ActivityRecord rootActivity = leafTask.getRootActivity();
++                if (rootActivity != null && !rootActivity.packageName.equals(resuming.packageName)){
++                    Configuration configuration = rootActivity.getConfiguration();
++                    if (configuration != null){
++                        int mWindowingMode = configuration.windowConfiguration.getWindowingMode();
++                        if (mWindowingMode == 5){
++                            ActivityRecord.State state = rootActivity.getState();
++                            if (state.name().equals("RESUMED")){
++                                //leafTask.moveTaskToBack(leafTask);
++                            }
++                        }
++                    }
++                }
++            }
++
+             if (!leafTask.isLeafTaskFragment()) {
+                 final ActivityRecord top = topRunningActivity();
+                 final ActivityRecord resumedActivity = leafTask.getResumedActivity();
+diff --git a/services/core/java/com/android/server/wm/TaskFragment.java b/services/core/java/com/android/server/wm/TaskFragment.java
+index f428d3e2237a..e438c4abefb8 100644
+--- a/services/core/java/com/android/server/wm/TaskFragment.java
++++ b/services/core/java/com/android/server/wm/TaskFragment.java
+@@ -88,6 +88,7 @@ import android.os.IBinder;
+ import android.os.RemoteException;
+ import android.os.UserHandle;
+ import android.util.DisplayMetrics;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ import android.view.DisplayInfo;
+@@ -1177,6 +1178,9 @@ class TaskFragment extends WindowContainer<WindowContainer> {
+         }
+ 
+         next.delayedResume = false;
++        if (prev != null && next != null){
++            Log.e(TAG, "resumeTopActivity123 :+prev  + "  + prev.packageName + "   next = "+next.packageName);
++        }
+ 
+         // If we are currently pausing an activity, then don't do anything until that is done.
+         final boolean allPausedComplete = mRootWindowContainer.allPausedActivitiesComplete();
+@@ -1185,7 +1189,6 @@ class TaskFragment extends WindowContainer<WindowContainer> {
+                     "resumeTopActivity: Skip resume: some activity pausing.");
+             return false;
+         }
+-
+         final TaskDisplayArea taskDisplayArea = getDisplayArea();
+         // If the top activity is the resumed one, nothing to do.
+         if (mResumedActivity == next && next.isState(RESUMED)
+diff --git a/services/core/java/com/android/server/wm/WindowContainer.java b/services/core/java/com/android/server/wm/WindowContainer.java
+index 6ec08dc08c51..127b78bdd78e 100644
+--- a/services/core/java/com/android/server/wm/WindowContainer.java
++++ b/services/core/java/com/android/server/wm/WindowContainer.java
+@@ -83,6 +83,7 @@ import android.os.Debug;
+ import android.os.IBinder;
+ import android.os.Trace;
+ import android.util.ArraySet;
++import android.util.Log;
+ import android.util.Pair;
+ import android.util.Pools;
+ import android.util.RotationUtils;
+@@ -709,6 +710,10 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
+                     + " can't add to container=" + getName());
+         }
+ 
++        if (child instanceof WindowState){
++            Log.e("test12345", "addChild: "+child);
++        }
++
+         int positionToAdd = -1;
+         if (comparator != null) {
+             final int count = mChildren.size();
+@@ -3663,6 +3668,7 @@ class WindowContainer<E extends WindowContainer> extends ConfigurationContainer<
+     }
+ 
+     void setSurfaceControl(SurfaceControl sc) {
++        Log.e("test12345", "setSurfaceControl: sc = "+sc ,new Exception());
+         mSurfaceControl = sc;
+     }
+ 
+diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
+index 371aca29eb14..7bd656238646 100644
+--- a/services/core/java/com/android/server/wm/WindowManagerService.java
++++ b/services/core/java/com/android/server/wm/WindowManagerService.java
+@@ -282,6 +282,7 @@ import android.view.SurfaceControlViewHost;
+ import android.view.SurfaceSession;
+ import android.view.TaskTransitionSpec;
+ import android.view.View;
++import android.view.ViewDebug;
+ import android.view.WindowContentFrameStats;
+ import android.view.WindowInsets;
+ import android.view.WindowManager;
+@@ -1903,6 +1904,7 @@ public class WindowManagerService extends IWindowManager.Stub
+ 
+             outInsetsState.set(win.getCompatInsetsState(), true /* copySources */);
+             getInsetsSourceControls(win, outActiveControls);
++            reportNewWindowAdded(win);
+ 
+             if (win.mLayoutAttached) {
+                 outAttachedFrame.set(win.getParentWindow().getFrame());
+@@ -1921,6 +1923,56 @@ public class WindowManagerService extends IWindowManager.Stub
+         return res;
+     }
+ 
++    private void reportNewWindowAdded(WindowState state) {
++        if (state == null) {
++            return;
++        }
+
+        WindowManager.LayoutParams layout = state.getAttrs();
+        if (layout == null) {
+            return;
+        }
+
+        String packageName = layout.packageName;
+        int layer = 0;
+        int type = layout.type;
+
+        StringBuilder sb = new StringBuilder(256);
+        layout.dumpDimensions(sb);
+        Slog.d("test12345", "addWindow: packages: " + packageName
+                + ", windowName: " + state.getName()
+                + ", displayId: " + state.getDisplayId()
+                + ", type: " + ViewDebug.intToString(LayoutParams.class, "type", type)
+                + ", dimensinos: " + sb.toString()
+                + ", Requested w=" + state.mRequestedWidth + ", h=" + state.mRequestedHeight);
+    }
+
+
+    private void reportNewWindowRemoved(WindowState state) {
+        if (state == null) {
+            return;
+        }
+
+        WindowManager.LayoutParams layout = state.getAttrs();
+        if (layout == null) {
+            return;
+        }
+
+        String packageName = layout.packageName;
+        int layer = 0;
+        int type = layout.type;
+
+        StringBuilder sb = new StringBuilder(256);
+        layout.dumpDimensions(sb);
+        Slog.d("test12345", "removeWindow: packages: " + packageName
+                + ", windowName: " + state.getName()
+                + ", displayId: " + state.getDisplayId()
+                + ", type: " + ViewDebug.intToString(LayoutParams.class, "type", type)
+                + ", dimensinos: " + sb.toString()
+                + ", Requested w=" + state.mRequestedWidth + ", h=" + state.mRequestedHeight);
+
+    }
+
+     private boolean unprivilegedAppCanCreateTokenWith(WindowState parentWindow,
+             int callingUid, int type, int rootType, IBinder tokenForLog, String packageName) {
+         if (rootType >= FIRST_APPLICATION_WINDOW && rootType <= LAST_APPLICATION_WINDOW) {
+@@ -2080,6 +2132,7 @@ public class WindowManagerService extends IWindowManager.Stub
+         synchronized (mGlobalLock) {
+             WindowState win = windowForClientLocked(session, client, false);
+             if (win != null) {
++                reportNewWindowRemoved(win);
+                 win.removeIfPossible();
+                 return;
+             }
+diff --git a/services/core/java/com/android/server/wm/WindowSurfaceController.java b/services/core/java/com/android/server/wm/WindowSurfaceController.java
+index 4a5c4737cbbc..363dc9cbabe0 100644
+--- a/services/core/java/com/android/server/wm/WindowSurfaceController.java
++++ b/services/core/java/com/android/server/wm/WindowSurfaceController.java
+@@ -34,6 +34,7 @@ import static com.android.server.wm.WindowSurfaceControllerProto.SHOWN;
+ import android.os.Debug;
+ import android.os.Trace;
+ import android.util.EventLog;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ import android.view.SurfaceControl;
+@@ -107,6 +108,7 @@ class WindowSurfaceController {
+ 
+         mSurfaceControl = b.build();
+ 
++        Log.e("test12345", "WindowSurfaceController: mSurfaceControl = "+mSurfaceControl );
+         Trace.traceEnd(TRACE_TAG_WINDOW_MANAGER);
+     }
+ 

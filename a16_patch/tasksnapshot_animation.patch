@@ -1,0 +1,348 @@
+commit 37c70b4618d3aa54bc7a4eedfaeff766f3c2c577
+Author: zhangpeng <p421123@163.com>
+Date:   Mon Mar 9 20:36:56 2026 +0800
+
+    tasksnapshot
+    
+    Change-Id: Ic7dcea098d042fe0dbd048fb28c0a1b3d609d97d
+
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index 0aa7e47157c6..fec2febc045f 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -1469,18 +1469,27 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+ //                            });
+                             mH.post(()->{
+                                 Task task = mRootWindowContainer.anyTaskForId(taskInfo.taskId);
+-                                FreeformResizeSurfaceAnimation.getInstance()
+-                                        .startAnimation(task,0,400,false,new FreeformResizeSurfaceAnimation.Listener(){
+-                                    @Override
+-                                    public void onResizeScaleDown() {
+-                                        Log.e(TAG, "onResizeScaleDown: ");
+-                                        try {
+-                                            int type = 1009;
+-                                            wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
+-                                            wct.setBounds(taskInfo.token, new Rect(400,0,1000,696));
+-                                            getWindowOrganizerController().startNewTransition(type,wct);
+-                                        } catch (Exception e) {
+-                                        }
++//                                FreeformResizeSurfaceAnimation.getInstance()
++//                                        .startAnimation(task,0,400,false,new FreeformResizeSurfaceAnimation.Listener(){
++//                                    @Override
++//                                    public void onResizeScaleDown() {
++//                                        Log.e(TAG, "onResizeScaleDown: ");
++//                                        try {
++//                                            int type = 1009;
++//                                            wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
++//                                            wct.setBounds(taskInfo.token, new Rect(400,0,1000,696));
++//                                            getWindowOrganizerController().startNewTransition(type,wct);
++//                                        } catch (Exception e) {
++//                                        }
++//                                    }
++//                                });
++                                new TaskSnapshotAnimator(task).start(new Rect(400,0,1000,696),false,()->{
++                                    try {
++                                        int type = 1009;
++                                        wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
++                                        wct.setBounds(taskInfo.token, new Rect(400,0,1000,696));
++                                        getWindowOrganizerController().startNewTransition(type,wct);
++                                    } catch (Exception e) {
+                                     }
+                                 });
+                             });
+diff --git a/services/core/java/com/android/server/wm/TaskSnapshotAnimator.java b/services/core/java/com/android/server/wm/TaskSnapshotAnimator.java
+new file mode 100644
+index 000000000000..814ebeb81980
+--- /dev/null
++++ b/services/core/java/com/android/server/wm/TaskSnapshotAnimator.java
+@@ -0,0 +1,290 @@
++package com.android.server.wm;
++
++import android.animation.Animator;
++import android.animation.AnimatorListenerAdapter;
++import android.animation.ValueAnimator;
++import android.annotation.SuppressLint;
++import android.graphics.PixelFormat;
++import android.graphics.Point;
++import android.graphics.Rect;
++import android.hardware.HardwareBuffer;
++import android.util.Log;
++import android.view.SurfaceControl;
++import android.window.ScreenCapture;
++
++public class TaskSnapshotAnimator {
++    private static final String TAG = "TaskSnapshotAnimator";
++    private static final long ANIMATION_DURATION = 500;
++
++    // 动画状态
++    private final Task mTask;
++    private final SurfaceControl.Transaction mTransaction;
++
++    private SurfaceControl mSnapshotLeash;      // 父容器（控制位置/透明度）
++    private SurfaceControl mSnapshotBufferLayer;      // 实际显示截图的层
++    private HardwareBuffer mSnapshotBuffer;
++
++    // 动画属性
++    private ValueAnimator mAnimator;
++    private final Rect mStartBounds = new Rect();
++    private final Rect mEndBounds = new Rect();
++    private int mDelay = 200;
++    private  boolean mBoundsScale;
++
++    // 动画完成回调
++    private Runnable mOnAnimationEnd;
++
++    public TaskSnapshotAnimator(Task task) {
++        mTask = task;
++        mTransaction = new SurfaceControl.Transaction();
++    }
++
++    /**
++     * 开始截图动画
++     * @param endBounds 动画结束时的目标位置（相对于屏幕）
++     * @param onEnd 动画结束回调
++     */
++    public void start(Rect endBounds, boolean boundsScale,Runnable onEnd) {
++        if (mTask == null) return;
++        mBoundsScale = boundsScale;
++        mEndBounds.set(endBounds);
++        mOnAnimationEnd = onEnd;
++
++        // 1. 捕获 Task 截图
++        if (!captureTaskSnapshot()) {
++            Log.e(TAG, "Failed to capture task snapshot");
++            cleanup();
++            if (onEnd != null) onEnd.run();
++            return;
++        }
++
++        // 2. 创建动画 Surface 层级
++        createAnimationLayers();
++        // 3. 获取 Task 当前在屏幕上的位置
++        getTaskCurrentBounds(mStartBounds);
++        // 4. 开始动画
++        startAnimation();
++    }
++
++    /**
++     * 捕获 Task 截图
++     */
++    private boolean captureTaskSnapshot() {
++        try {
++            // 使用 Task 的 bounds 作为截图区域
++            Rect taskBounds = mTask.getBounds();
++
++            ScreenCapture.ScreenshotHardwareBuffer screenshotBuffer =
++                    ScreenCapture.captureLayers(
++                            mTask.getSurfaceControl(),
++                            new Rect(0, 0, taskBounds.width(), taskBounds.height()),
++                            1.0f
++                    );
++
++            if (screenshotBuffer == null || screenshotBuffer.getHardwareBuffer() == null) {
++                return false;
++            }
++            mSnapshotBuffer = screenshotBuffer.getHardwareBuffer();
++            return mSnapshotBuffer != null;
++
++        } catch (Exception e) {
++            Log.e(TAG, "Error capturing snapshot", e);
++            return false;
++        }
++    }
++
++    /**
++     * 创建动画所需的 Surface 层级结构
++     */
++    private void createAnimationLayers() {
++        SurfaceControl taskSc = mTask.getDisplayArea().getSurfaceControl();
++        if (taskSc == null || !taskSc.isValid()) {
++            Log.e(TAG, "createAnimationLayers: Task SurfaceControl invalid ");
++            return;
++        }
++
++        // 创建父容器层 - 用于控制整体位置、透明度、缩放
++        mSnapshotLeash = new SurfaceControl.Builder()
++                .setName("TaskSnapshotLeash")
++                .setContainerLayer()
++                .setParent(taskSc)
++                .setCallsite("TaskSnapshotAnimator")
++                .build();
++
++        // 创建实际显示层 - 绑定截图 buffer
++        mSnapshotBufferLayer = new SurfaceControl.Builder()
++                .setName("TaskSnapshotLayer")
++                .setBLASTLayer()
++                .setParent(mSnapshotLeash)
++                .setFormat(PixelFormat.RGBA_8888)
++                .setBufferSize(mSnapshotBuffer.getWidth(), mSnapshotBuffer.getHeight())
++                .setCallsite("TaskSnapshotAnimator")
++                .build();
++
++        // 设置初始状态
++        mTransaction
++                .setBuffer(mSnapshotBufferLayer, mSnapshotBuffer)
++                .setLayer(mSnapshotLeash, Integer.MAX_VALUE - 1)  // 确保在最上层
++                .setLayer(mSnapshotBufferLayer, 0)
++                .setPosition(mSnapshotLeash, 0, 0)
++                .setCrop(mSnapshotLeash,mTask.getBounds())
++                .setCornerRadius(mSnapshotLeash, 50)
++                .show(mSnapshotBufferLayer)
++                .show(mSnapshotLeash);
++
++        mTransaction.apply();
++    }
++
++    /**
++     * 获取 Task 当前在屏幕上的绝对位置
++     */
++    private void getTaskCurrentBounds(Rect outBounds) {
++        // 从 Task 获取当前位置
++        outBounds.set(mTask.getBounds());
++        // 如果有窗口容器，转换为屏幕坐标
++        WindowContainer wc = mTask.getParent();
++        if (wc != null) {
++            Point offset = new Point();
++            wc.getRelativePosition(offset);
++            outBounds.offset(offset.x, offset.y);
++        }
++    }
++
++    /**
++     * 开始执行动画
++     */
++    @SuppressLint("NewApi")
++    private void startAnimation() {
++
++        if (mAnimator != null && mAnimator.isRunning()){
++            mAnimator.cancel();
++            return;
++        }
++        // 创建属性动画
++        mAnimator = ValueAnimator.ofFloat(0f,0.8f,0.9f,1f);
++        mAnimator.setDuration(ANIMATION_DURATION);
++
++        mAnimator.addUpdateListener(animation -> {
++            float progress = (float) animation.getAnimatedValue();
++
++            float snapshotArg = progress;
++            float alpha =1f;
++            if (snapshotArg >= 0.8f) {
++                alpha = 1f - (snapshotArg - 0.8f) / 0.2f;
++            }
++            // 计算当前 bounds（线性插值）
++            Rect currentBounds = new Rect();
++            currentBounds.left = (int) (mStartBounds.left +
++                    (mEndBounds.left - mStartBounds.left) * snapshotArg);
++            currentBounds.top = (int) (mStartBounds.top +
++                    (mEndBounds.top - mStartBounds.top) * snapshotArg);
++            currentBounds.right = (int) (mStartBounds.right +
++                    (mEndBounds.right - mStartBounds.right) * snapshotArg);
++            currentBounds.bottom = (int) (mStartBounds.bottom +
++                    (mEndBounds.bottom - mStartBounds.bottom) * snapshotArg);
++            updateSnapshotTransform(currentBounds, alpha);
++
++            if (snapshotArg >=0.95f){
++                taskAlpha((snapshotArg - 0.8f) / 0.2f);
++            }else {
++                taskAlpha(0.3f);
++            }
++        });
++
++        mAnimator.addListener(new AnimatorListenerAdapter() {
++            @Override
++            public void onAnimationStart(Animator animation) {
++                super.onAnimationStart(animation);
++                if (mOnAnimationEnd != null) {
++                    mOnAnimationEnd.run();
++                }
++            }
++
++            @Override
++            public void onAnimationEnd(Animator animation) {
++                super.onAnimationEnd(animation);
++                if (mOnAnimationEnd != null) {
++                    mOnAnimationEnd.run();
++                }
++                mTask.mAtmService.mH.postDelayed(()->{
++                    cleanup();
++                },(mBoundsScale?mDelay:0));
++
++            }
++
++            @Override
++            public void onAnimationCancel(Animator animation) {
++                super.onAnimationCancel(animation);
++                cleanup();
++            }
++        });
++
++        if (!mBoundsScale) mAnimator.setStartDelay(mDelay);
++        if (mAnimator != null) mAnimator.start();
++    }
++
++    private void taskAlpha(float alpha){
++        mTransaction
++                .setAlpha(mTask.getSurfaceControl(),alpha)
++                .apply();
++    }
++
++    /**
++     * 更新截图层的变换
++     */
++    private void updateSnapshotTransform(Rect bounds, float alpha) {
++        if (mSnapshotLeash == null || !mSnapshotLeash.isValid()) return;
++
++        Log.e(TAG, "updateSnapshotTransform: " + bounds);
++        mTransaction
++                // 设置位置和大小
++                .setPosition(mSnapshotLeash, bounds.left, bounds.top)
++                .setWindowCrop(mSnapshotLeash, bounds.width(), bounds.height())
++                .setAlpha(mSnapshotLeash, alpha) // 设置透明度
++                .apply();
++    }
++
++    /**
++     * 取消动画
++     */
++    public void cancel() {
++        if (mAnimator != null && mAnimator.isRunning()) {
++            mAnimator.cancel();
++        }
++        cleanup();
++    }
++
++    /**
++     * 清理资源
++     */
++    private void cleanup() {
++        // 停止动画
++        if (mAnimator != null) {
++            mAnimator.removeAllListeners();
++            mAnimator.removeAllUpdateListeners();
++            mAnimator = null;
++        }
++
++        // 清理 Surface
++        SurfaceControl.Transaction t = new SurfaceControl.Transaction();
++
++        if (mSnapshotBufferLayer != null && mSnapshotBufferLayer.isValid()) {
++            t.remove(mSnapshotBufferLayer);
++            mSnapshotBufferLayer = null;
++        }
++
++        if (mSnapshotLeash != null && mSnapshotLeash.isValid()) {
++            t.remove(mSnapshotLeash);
++            mSnapshotLeash = null;
++        }
++
++        t.apply();
++
++        // 释放 buffer
++        if (mSnapshotBuffer != null) {
++            mSnapshotBuffer.close();
++            mSnapshotBuffer = null;
++        }
++    }
++
++}

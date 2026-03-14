@@ -1,0 +1,87 @@
+diff --git a/services/core/java/com/android/server/wm/Task.java b/services/core/java/com/android/server/wm/Task.java
+index 89634707995a..7e11173c83eb 100644
+--- a/services/core/java/com/android/server/wm/Task.java
++++ b/services/core/java/com/android/server/wm/Task.java
+@@ -1304,9 +1304,24 @@ class Task extends TaskFragment {
+         return someActivityPaused[0] > 0;
+     }
+ 
++    private void initFreeFormCornerRadius() {
++        if (getWindowingMode() == WINDOWING_MODE_FREEFORM) {
++            SurfaceControl.Transaction t = getSyncTransaction();
++            t.setCornerRadius(getSurfaceControl(), 50);
++            t.setWindowCrop(getSurfaceControl(), getBounds().width(), getBounds().height());
++            t.apply();
++            android.util.Log.i("test_radius", "initFreeFormCornerRadius " + getSurfaceControl());
++        }
++    }
++
+     void updateTaskMovement(boolean toTop, boolean toBottom, int position) {
+-        EventLogTags.writeWmTaskMoved(mTaskId, getRootTaskId(), getDisplayId(), toTop ? 1 : 0,
+-                position);
++
++        if (toTop){
++            initFreeFormCornerRadius();
++        }
++
++        EventLogTags.writeWmTaskMoved(mTaskId, getRootTaskId(), getDisplayId(), toTop ? 1 : 0, position);
++
+         final TaskDisplayArea taskDisplayArea = getDisplayArea();
+         if (taskDisplayArea != null) {
+             taskDisplayArea.onTaskMoved(this, toTop, toBottom);
+@@ -2267,7 +2282,7 @@ class Task extends TaskFragment {
+         // Prevent to overlap caption with stable insets.
+         final int offsetTop = parentBounds.top - outBounds.top;
+         if (offsetTop > 0) {
+-            outBounds.offset(0, offsetTop);
++            //outBounds.offset(0, offsetTop);
+         }
+     }
+ 
+diff --git a/services/core/java/com/android/server/wm/Transition.java b/services/core/java/com/android/server/wm/Transition.java
+index 65001f436d3f..4dac80712d9a 100644
+--- a/services/core/java/com/android/server/wm/Transition.java
++++ b/services/core/java/com/android/server/wm/Transition.java
+@@ -91,6 +91,7 @@ import android.graphics.Rect;
+ import android.hardware.HardwareBuffer;
+ import android.os.Binder;
+ import android.os.Bundle;
++import android.os.Debug;
+ import android.os.IBinder;
+ import android.os.IRemoteCallback;
+ import android.os.Looper;
+@@ -1133,8 +1134,12 @@ class Transition implements BLASTSyncEngine.TransactionReadyListener {
+             // Ensure surfaceControls are re-parented back into the hierarchy.
+             t.reparent(targetLeash, origParent);
+             t.setLayer(targetLeash, target.getLastLayer());
+-            t.setCornerRadius(targetLeash, 0);
+-            t.setShadowRadius(targetLeash, 0);
++            if (target.inFreeformWindowingMode()){
++                t.setCornerRadius(targetLeash, 50);
++                android.util.Log.i("test_radius", "buildFinishTransaction " + targetLeash);
++            }else {
++                t.setShadowRadius(targetLeash, 0);
++            }
+             t.setAlpha(targetLeash, 1);
+             // For config-at-end, the end-transform will be reset after the config is actually
+             // applied in the client (since the transform depends on config). The other properties
+@@ -1992,7 +1997,7 @@ class Transition implements BLASTSyncEngine.TransactionReadyListener {
+                     mStatusBarTransitionDelay);
+             try {
+                 ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS,
+-                        "Calling onTransitionReady: %s", info);
++                        "Calling onTransitionReady: %s  %s", info,Debug.getCallers(10));
+                 mLogger.mSendTimeNs = SystemClock.elapsedRealtimeNanos();
+                 mLogger.mInfo = info;
+                 mController.getTransitionPlayer().onTransitionReady(
+@@ -4160,8 +4165,8 @@ class Transition implements BLASTSyncEngine.TransactionReadyListener {
+                 }
+             }
+ 
+-            ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS, "Screenshotting %s [%s]",
+-                    wc.toString(), bounds.toString());
++            ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS, "Screenshotting %s [%s] Callers = %s",
++                    wc.toString(), bounds.toString(), Debug.getCallers(10));
+ 
+             Rect cropBounds = new Rect(bounds);
+             cropBounds.offsetTo(0, 0);

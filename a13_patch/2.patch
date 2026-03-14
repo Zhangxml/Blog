@@ -1,0 +1,101 @@
+commit b379267786b2d318dc7c9935e4e01efefa74e8da
+Author: zhangpeng <p421123@163.com>
+Date:   Tue Jan 7 10:00:42 2025 +0800
+
+    整理wms流程
+    
+    Change-Id: Ie43c0d393c9f9c8028d40b3244adac9a50f4a986
+
+diff --git a/core/java/android/app/Activity.java b/core/java/android/app/Activity.java
+index 03a97ba1d977..7ae045d46c46 100644
+--- a/core/java/android/app/Activity.java
++++ b/core/java/android/app/Activity.java
+@@ -8271,7 +8271,7 @@ public class Activity extends ContextThemeWrapper
+                         Looper.myLooper());
+             }
+         }
+-
++        Log.e(TAG, "attach: 赋值 token ");
+         mWindow.setWindowManager(
+                 (WindowManager)context.getSystemService(Context.WINDOW_SERVICE),
+                 mToken, mComponent.flattenToString(),
+diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
+index 556058b567f9..ad771af2c648 100644
+--- a/core/java/android/app/Instrumentation.java
++++ b/core/java/android/app/Instrumentation.java
+@@ -2184,6 +2184,7 @@ public class Instrumentation {
+     /** @hide */
+     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P, trackingBug = 115609023)
+     public static void checkStartActivityResult(int res, Object intent) {
++        Log.e(TAG, "checkStartActivityResult: res = "+res + " , intent = "+intent, new Exception());
+         if (!ActivityManager.isStartResultFatalError(res)) {
+             return;
+         }
+diff --git a/core/java/android/view/ViewRootImpl.java b/core/java/android/view/ViewRootImpl.java
+index 8323a61347c9..01e4f142b758 100644
+--- a/core/java/android/view/ViewRootImpl.java
++++ b/core/java/android/view/ViewRootImpl.java
+@@ -1159,6 +1159,7 @@ public final class ViewRootImpl implements ViewParent,
+      */
+     public void setView(View view, WindowManager.LayoutParams attrs, View panelParentView,
+             int userId) {
++        Log.e(TAG, "setView: test123 addToDisplayAsUser 阶段");
+         synchronized (this) {
+             if (mView == null) {
+                 mView = view;
+@@ -8272,6 +8273,7 @@ public final class ViewRootImpl implements ViewParent,
+                     insetsPending ? WindowManagerGlobal.RELAYOUT_INSETS_PENDING : 0, mRelayoutSeq,
+                     mLastSyncSeqId);
+         } else {
++            Log.e(TAG, "relayoutWindow: test123 relayout");
+             relayoutResult = mWindowSession.relayout(mWindow, params,
+                     requestedWidth, requestedHeight, viewVisibility,
+                     insetsPending ? WindowManagerGlobal.RELAYOUT_INSETS_PENDING : 0, mRelayoutSeq,
+diff --git a/core/java/android/view/WindowManagerGlobal.java b/core/java/android/view/WindowManagerGlobal.java
+index d37756551db3..dc1d391367ac 100644
+--- a/core/java/android/view/WindowManagerGlobal.java
++++ b/core/java/android/view/WindowManagerGlobal.java
+@@ -308,6 +308,7 @@ public final class WindowManagerGlobal {
+ 
+     public void addView(View view, ViewGroup.LayoutParams params,
+             Display display, Window parentWindow, int userId) {
++        Log.e(TAG, "addView: test123 " +display + "  parentWindow ="+parentWindow);
+         if (view == null) {
+             throw new IllegalArgumentException("view must not be null");
+         }
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java b/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
+index f601e30c9001..9785a34676d5 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
+@@ -770,7 +770,7 @@ public class ActivityTaskSupervisor implements RecentTasks.Callbacks {
+     boolean realStartActivityLocked(ActivityRecord r, WindowProcessController proc,
+             boolean andResume, boolean checkConfig) throws RemoteException {
+ 
+-        Log.e(TAG, "realStartActivityLocked: zapd  realStartActivityLocked > r = "+r );
++        Log.e(TAG, "realStartActivityLocked: test123  realStartActivityLocked > r = "+r );
+ 
+         if (!mRootWindowContainer.allPausedActivitiesComplete()) {
+             // While there are activities pausing we skipping starting any new activities until
+diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
+index 78ed43658dd5..371aca29eb14 100644
+--- a/services/core/java/com/android/server/wm/WindowManagerService.java
++++ b/services/core/java/com/android/server/wm/WindowManagerService.java
+@@ -230,6 +230,7 @@ import android.util.ArrayMap;
+ import android.util.ArraySet;
+ import android.util.DisplayMetrics;
+ import android.util.EventLog;
++import android.util.Log;
+ import android.util.MergedConfiguration;
+ import android.util.Pair;
+ import android.util.Slog;
+@@ -1479,6 +1480,10 @@ public class WindowManagerService extends IWindowManager.Stub
+             InputChannel outInputChannel, InsetsState outInsetsState,
+             InsetsSourceControl[] outActiveControls, Rect outAttachedFrame,
+             float[] outSizeCompatScale) {
++
++        // 创建WindowState并挂载
++        Log.e(TAG, "addWindow: test123 ");
++
+         Arrays.fill(outActiveControls, null);
+         int[] appOp = new int[1];
+         final boolean isRoundedCornerOverlay = (attrs.privateFlags

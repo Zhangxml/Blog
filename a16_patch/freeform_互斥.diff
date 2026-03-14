@@ -1,0 +1,102 @@
+diff --git a/services/core/java/com/android/server/wm/ActivityClientController.java b/services/core/java/com/android/server/wm/ActivityClientController.java
+index fd4e38e9813d..bff9f86b65fd 100644
+--- a/services/core/java/com/android/server/wm/ActivityClientController.java
++++ b/services/core/java/com/android/server/wm/ActivityClientController.java
+@@ -95,6 +95,7 @@ import android.os.SystemClock;
+ import android.os.Trace;
+ import android.os.UserHandle;
+ import android.service.voice.VoiceInteractionManagerInternal;
++import android.util.Log;
+ import android.util.Slog;
+ import android.view.RemoteAnimationDefinition;
+ import android.window.DesktopModeFlags;
+@@ -116,6 +117,9 @@ import com.android.server.utils.quota.Category;
+ import com.android.server.utils.quota.CountQuotaTracker;
+ import com.android.server.vr.VrManagerInternal;
+ 
++import java.util.ArrayList;
++import java.util.List;
++
+ /**
+  * Server side implementation for the client activity to interact with system.
+  *
+@@ -152,6 +156,8 @@ class ActivityClientController extends IActivityClientController.Stub {
+     @ChangeId
+     public static final long ACCESS_SHARED_IDENTITY = 259743961L;
+ 
++    public List<ActivityRecord> mActivityRecord = new ArrayList<>();
++
+     ActivityClientController(ActivityTaskManagerService service) {
+         mService = service;
+         mGlobalLock = service.mGlobalLock;
+@@ -161,6 +167,7 @@ class ActivityClientController extends IActivityClientController.Stub {
+ 
+     void onSystemReady() {
+         mAssistUtils = new AssistUtils(mContext);
++        mActivityRecord.clear();
+     }
+ 
+     @Override
+@@ -201,6 +208,19 @@ class ActivityClientController extends IActivityClientController.Stub {
+         final long origId = Binder.clearCallingIdentity();
+         synchronized (mGlobalLock) {
+             ActivityRecord.activityResumedLocked(token, handleSplashScreenExit);
++
++            final ActivityRecord r = ActivityRecord.forTokenLocked(token);
++            boolean inFreeformWindowingMode = r.getRootTask().inFreeformWindowingMode();
++            if (inFreeformWindowingMode){
++                if (mActivityRecord.size() >= 1){
++                    mActivityRecord.clear();
++                    Log.e("TAG1127", "clear(): ");
++                }
++                // add 本次的
++                mActivityRecord.add(r);
++                Log.e("TAG1127", "add(r): " + r);
++            }
++
+         }
+         Binder.restoreCallingIdentity(origId);
+     }
+diff --git a/services/core/java/com/android/server/wm/TaskDisplayArea.java b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+index 1de139696c07..089f626d8d90 100644
+--- a/services/core/java/com/android/server/wm/TaskDisplayArea.java
++++ b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+@@ -48,6 +48,7 @@ import android.content.pm.ActivityInfo.ScreenOrientation;
+ import android.content.res.Configuration;
+ import android.graphics.Color;
+ import android.os.UserHandle;
++import android.util.Log;
+ import android.util.Slog;
+ import android.view.SurfaceControl;
+ import android.view.WindowManager;
+@@ -63,6 +64,7 @@ import com.android.server.wm.LaunchParamsController.LaunchParams;
+ import java.io.PrintWriter;
+ import java.util.ArrayList;
+ import java.util.Arrays;
++import java.util.List;
+ import java.util.function.BiFunction;
+ import java.util.function.Consumer;
+ import java.util.function.Function;
+@@ -1284,8 +1286,22 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+                 someActivityPaused[0]++;
+             }
+         }, true /* traverseTopToBottom */);
++
++        moveTaskToBack(resuming);
++
+         return someActivityPaused[0] > 0;
+     }
++    
++    private void moveTaskToBack(ActivityRecord resuming){
++        List<ActivityRecord> mActivityRecord = mAtmService.mActivityClientController.mActivityRecord;
++        for (int i = 0; i < mActivityRecord.size(); i++) {
++            Task rootTask = mActivityRecord.get(i).getRootTask();
++            if (resuming.getRootTask().getRootTaskId() != rootTask.getRootTaskId()){
++                Log.e("TAG1127", "moveTaskToBack: " +mActivityRecord.get(i));
++                rootTask.moveTaskToBack(rootTask);
++            }
++        }
++    }
+ 
+ 
+     /**

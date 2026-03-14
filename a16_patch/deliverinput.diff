@@ -1,0 +1,19 @@
+diff --git a/core/java/android/view/ViewRootImpl.java b/core/java/android/view/ViewRootImpl.java
+index 2d62ed8c3ffc..a5dae11352d3 100644
+--- a/core/java/android/view/ViewRootImpl.java
++++ b/core/java/android/view/ViewRootImpl.java
+@@ -10528,6 +10528,14 @@ public final class ViewRootImpl implements ViewParent,
+                 }
+             }
+ 
++            if (q.mEvent instanceof MotionEvent && ((MotionEvent)q.mEvent).isTouchEvent()) {
++                MotionEvent mMotionEvent = (MotionEvent)q.mEvent;
++                Log.d("deliverInputEvent to package : ", mContext.getPackageName() +
++                        " ,action : " + mMotionEvent.getAction()
++                        + ",displayId = " + mMotionEvent.getDisplayId()
++                        +", X = " + mMotionEvent.getRawX() + " ,Y = " + mMotionEvent.getRawY());
++            }
++
+             if (stage != null) {
+                 handleWindowFocusChanged();
+                 stage.deliver(q);

@@ -1,0 +1,159 @@
+diff --git a/core/java/android/app/IActivityTaskManager.aidl b/core/java/android/app/IActivityTaskManager.aidl
+index 2952790cbb9c..a18e9b2a05e4 100644
+--- a/core/java/android/app/IActivityTaskManager.aidl
++++ b/core/java/android/app/IActivityTaskManager.aidl
+@@ -413,5 +413,5 @@ interface IActivityTaskManager {
+ 
+     void backActivity(String pkg,String mainClass);
+ 
+-//    void notifyCustomChanged(String from,String to,String arg);
++    void notifyCustomChanged(String arg);
+ }
+diff --git a/core/java/android/app/ITaskStackListener.aidl b/core/java/android/app/ITaskStackListener.aidl
+index 5bcd326cef42..a1b6a78c39ea 100644
+--- a/core/java/android/app/ITaskStackListener.aidl
++++ b/core/java/android/app/ITaskStackListener.aidl
+@@ -226,6 +226,6 @@ oneway interface ITaskStackListener {
+      */
+     void onLockTaskModeChanged(int mode);
+ 
+-//    void onCustomChanged(String arg);
++    void onCustomChanged(String arg);
+ 
+ }
+diff --git a/core/java/android/app/TaskStackListener.java b/core/java/android/app/TaskStackListener.java
+index 69d755f8d86c..ced3a36c8963 100644
+--- a/core/java/android/app/TaskStackListener.java
++++ b/core/java/android/app/TaskStackListener.java
+@@ -221,7 +221,7 @@ public abstract class TaskStackListener extends ITaskStackListener.Stub {
+     public void onLockTaskModeChanged(int mode) {
+     }
+ 
+-//    @Override
+-//    public void onCustomChanged(String arg) {
+-//    }
++    @Override
++    public void onCustomChanged(String arg) {
++    }
+ }
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index df2b8a48739e..c9c01a5844fc 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -1446,16 +1446,16 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         }
+     }
+ 
+-//    @Override
+-//    public void notifyCustomChanged(String from,String to , String json){
+-//        final long ident = Binder.clearCallingIdentity();
+-//        try {
+-//            getTaskChangeNotificationController().notifyCustomChanged(json);
+-//        } catch (Exception e) {
+-//        }finally {
+-//            Binder.restoreCallingIdentity(ident);
+-//        }
+-//    }
++    @Override
++    public void notifyCustomChanged(String json){
++        final long ident = Binder.clearCallingIdentity();
++        try {
++            getTaskChangeNotificationController().notifyCustomChanged(json);
++        } catch (Exception e) {
++        }finally {
++            Binder.restoreCallingIdentity(ident);
++        }
++    }
+ 
+     private void testFinish(String pkg,String className){
+         Intent intent = new Intent();
+diff --git a/services/core/java/com/android/server/wm/TaskChangeNotificationController.java b/services/core/java/com/android/server/wm/TaskChangeNotificationController.java
+index 6580f6e177b1..ebfc564f7e24 100644
+--- a/services/core/java/com/android/server/wm/TaskChangeNotificationController.java
++++ b/services/core/java/com/android/server/wm/TaskChangeNotificationController.java
+@@ -195,9 +195,9 @@ class TaskChangeNotificationController {
+         l.onLockTaskModeChanged(m.arg1);
+     };
+ 
+-//    private final TaskStackConsumer mNotifyCustomChanged = (l, m) -> {
+-//        l.onCustomChanged((String) m.obj);
+-//    };
++    private final TaskStackConsumer mNotifyCustomChanged = (l, m) -> {
++        l.onCustomChanged((String) m.obj);
++    };
+ 
+     @FunctionalInterface
+     public interface TaskStackConsumer {
+@@ -294,6 +294,9 @@ class TaskChangeNotificationController {
+                 case NOTIFY_TASK_SNAPSHOT_INVALIDATED_LISTENERS_MSG:
+                     forAllRemoteListeners(mNotifyTaskSnapshotInvalidated, msg);
+                     break;
++                case NOTIFY_CUSTOME_CHANGED_MSG:
++                    forAllRemoteListeners(mNotifyCustomChanged, msg);
++                    break;
+             }
+             if (msg.obj instanceof SomeArgs) {
+                 ((SomeArgs) msg.obj).recycle();
+@@ -463,14 +466,14 @@ class TaskChangeNotificationController {
+ 
+     }
+ 
+-//    void notifyCustomChanged(String arg) {
+-//        final Message msg = mHandler.obtainMessage(NOTIFY_CUSTOME_CHANGED_MSG, arg);
+-//        forAllLocalListeners(mNotifyCustomChanged, msg);
+-//        msg.sendToTarget();
+-//
+-//        Log.e("test0106", "notifyCustomChanged: " + arg);
+-//
+-//    }
++    void notifyCustomChanged(String arg) {
++        final Message msg = mHandler.obtainMessage(NOTIFY_CUSTOME_CHANGED_MSG, arg);
++        forAllLocalListeners(mNotifyCustomChanged, msg);
++        msg.sendToTarget();
++
++        Log.e("test0106", "notifyCustomChanged: " + arg);
++
++    }
+ 
+     void notifyActivityRequestedOrientationChanged(int taskId, int orientation) {
+         final Message msg = mHandler.obtainMessage(
+diff --git a/services/core/java/com/android/server/wm/TaskDisplayArea.java b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+index 7f5294818f0b..ac835bdac485 100644
+--- a/services/core/java/com/android/server/wm/TaskDisplayArea.java
++++ b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+@@ -1295,7 +1295,7 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+         return someActivityPaused[0] > 0;
+     }
+     
+-//    private void moveTaskToBack(ActivityRecord resuming){
++    private void moveTaskToBack(ActivityRecord resuming){
+ //        if (!resuming.getRootTask().inFreeformWindowingMode())return;
+ //        List<ActivityRecord> mActivityRecord = mAtmService.mActivityClientController.mActivityRecord;
+ //        for (int i = 0; i < mActivityRecord.size(); i++) {
+@@ -1303,15 +1303,20 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+ //            if (resuming.getRootTask().getRootTaskId() != rootTask.getRootTaskId()){
+ //                Log.e("Zhangxml1127", "moveTaskToBack: " +mActivityRecord.get(i));
+ //                rootTask.moveTaskToBack(rootTask);
+-//                try {
+-//                    JSONObject obj = new JSONObject().put("from", "android").put("to", "app").put("arg1", "moveTaskToBack");
+-//                    mAtmService.notifyCustomChanged(obj.toString());
+-//                } catch (Exception e) {
+-//                }
++                try {
++
++                    JSONObject obj = new JSONObject()
++                            .put("from", "android")
++                            .put("to", "app")
++                            .put("arg1", "moveTaskToBack");
++
++                    mAtmService.notifyCustomChanged(obj.toString());
++                } catch (Exception e) {
++                }
+ //
+ //            }
+ //        }
+-//    }
++    }
+ 
+ 
+     /**

@@ -1,0 +1,13 @@
+diff --git a/services/core/java/com/android/server/wm/TaskLaunchParamsModifier.java b/services/core/java/com/android/server/wm/TaskLaunchParamsModifier.java
+index 6c7d979dc43d..ac093335f785 100644
+--- a/services/core/java/com/android/server/wm/TaskLaunchParamsModifier.java
++++ b/services/core/java/com/android/server/wm/TaskLaunchParamsModifier.java
+@@ -854,7 +854,7 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
+                 taskBoundsToCheck.add(task.getChildAt(j).getBounds());
+             }
+         }, false /* traverseTopToBottom */);
+-        adjustBoundsToAvoidConflict(displayArea.getBounds(), taskBoundsToCheck, inOutBounds);
++        //adjustBoundsToAvoidConflict(displayArea.getBounds(), taskBoundsToCheck, inOutBounds);
+     }
+ 
+     /**

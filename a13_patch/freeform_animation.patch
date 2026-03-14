@@ -1,0 +1,306 @@
+commit 7722a6d80fe91c6025bc04f2a56c7b0499273e87
+Author: zhangpeng <p421123@163.com>
+Date:   Tue Mar 25 15:01:18 2025 +0800
+
+    freeform
+    
+    Change-Id: I4c751461b2d7a85ae57366121f840473ca8fc629
+
+diff --git a/core/res/res/layout/freeform_animation.xml b/core/res/res/layout/freeform_animation.xml
+new file mode 100644
+index 000000000000..759c848f9feb
+--- /dev/null
++++ b/core/res/res/layout/freeform_animation.xml
+@@ -0,0 +1,43 @@
++<?xml version="1.0" encoding="utf-8"?>
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:background="#00ffffff"
++    android:layout_margin="0dp"
++    android:padding="0dp"
++    android:orientation="horizontal">
++
++    <View
++        android:layout_width="773px"
++        android:layout_height="match_parent"
++        android:background="#00ffffff"/>
++
++    <FrameLayout
++        android:id="@+id/root_left"
++        android:layout_width="995px"
++        android:layout_height="match_parent"
++        android:background="#ffffff">
++        <ImageView
++            android:id="@+id/image_left"
++            android:layout_width="30dp"
++            android:layout_height="30dp"
++            android:layout_gravity="center"/>
++    </FrameLayout>
++
++    <FrameLayout
++        android:id="@+id/root_right"
++        android:layout_width="0px"
++        android:layout_weight="1"
++        android:layout_height="match_parent"
++        android:background="#ffffff">
++
++        <ImageView
++            android:id="@+id/image_right"
++            android:layout_width="30dp"
++            android:layout_height="30dp"
++            android:layout_gravity="center"/>
++    </FrameLayout>
++
++
++</LinearLayout>
+\ No newline at end of file
+diff --git a/core/res/res/values/symbols.xml b/core/res/res/values/symbols.xml
+index 01c6b5509cb7..379bc91ab0f7 100644
+--- a/core/res/res/values/symbols.xml
++++ b/core/res/res/values/symbols.xml
+@@ -4915,4 +4915,11 @@
+ 
+   <!-- Whether to show weather on the lockscreen by default. -->
+   <java-symbol type="bool" name="config_lockscreenWeatherEnabledByDefault" />
++
++  <java-symbol type="layout" name="freeform_animation" />
++  <java-symbol type="id" name="image_left" />
++  <java-symbol type="id" name="image_right" />
++  <java-symbol type="id" name="root_left" />
++  <java-symbol type="id" name="root_right" />
++
+ </resources>
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index 863bf94b13c1..0b1463bd2fc1 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -1240,6 +1240,21 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+             IBinder resultTo, String resultWho, int requestCode, int startFlags,
+             ProfilerInfo profilerInfo, Bundle bOptions, int userId, boolean validateIncomingUser) {
+ 
++        if (bOptions == null){
++            bOptions = new Bundle();
++        }
++
++        if (intent != null && intent.getComponent()!=null && intent.getComponent().getPackageName().equals("com.android.settings")){
++            bOptions.putParcelable("android:activity.launchBounds", new Rect(0,0,770,1440));
++            bOptions.putInt("android.activity.windowingMode", 5);
++        }else if (intent != null && intent.getComponent()!=null && intent.getComponent().getPackageName().equals("com.android.documentsui")){
++            bOptions.putParcelable("android:activity.launchBounds", new Rect(770+3,0,770+995,1440));
++            bOptions.putInt("android.activity.windowingMode", 5);
++        }else if (intent != null && intent.getComponent()!=null && intent.getComponent().getPackageName().equals("com.example.myapplication")){
++            bOptions.putParcelable("android:activity.launchBounds", new Rect(770+995+3,0,2760-3,1440));
++            bOptions.putInt("android.activity.windowingMode", 5);
++        }
++
+         final SafeActivityOptions opts = SafeActivityOptions.fromBundle(bOptions);
+         // A quick path (skip general intent/task resolving) to start recents animation if the
+         // recents (or home) activity is available in background.
+@@ -1276,6 +1291,7 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         userId = getActivityStartController().checkTargetUser(userId, validateIncomingUser,
+                 Binder.getCallingPid(), Binder.getCallingUid(), "startActivityAsUser");
+ 
++
+         // TODO: Switch to user app stacks here.
+         return getActivityStartController().obtainStarter(intent, "startActivityAsUser")
+                 .setCaller(caller)
+diff --git a/services/core/java/com/android/server/wm/DisplayContent.java b/services/core/java/com/android/server/wm/DisplayContent.java
+index 8934ff9a3100..04eca3749092 100644
+--- a/services/core/java/com/android/server/wm/DisplayContent.java
++++ b/services/core/java/com/android/server/wm/DisplayContent.java
+@@ -198,6 +198,7 @@ import android.util.ArraySet;
+ import android.util.DisplayMetrics;
+ import android.util.DisplayUtils;
+ import android.util.IntArray;
++import android.util.Log;
+ import android.util.RotationUtils;
+ import android.util.Size;
+ import android.util.Slog;
+@@ -781,6 +782,10 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
+                 w, w.mAttrs.flags, w.canReceiveKeys(),
+                 w.canReceiveKeysReason(false /* fromUserTouch */));
+ 
++        if (w.getWindowTag().toString().contains("com.android.launcher3")){
++            Log.e(TAG, "test12345: focusedApp = " + focusedApp);
++        }
++
+         if (!w.canReceiveKeys()) {
+             return false;
+         }
+@@ -1123,6 +1128,9 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
+         mTapDetector = new TaskTapPointerEventListener(mWmService, this);
+         registerPointerEventListener(mTapDetector);
+         registerPointerEventListener(mWmService.mMousePositionTracker);
++
++        registerPointerEventListener(new NewPointerEventListener(mWmService,this));
++
+         if (mWmService.mAtmService.getRecentTasks() != null) {
+             registerPointerEventListener(
+                     mWmService.mAtmService.getRecentTasks().getInputListener());
+diff --git a/services/core/java/com/android/server/wm/NewPointerEventListener.java b/services/core/java/com/android/server/wm/NewPointerEventListener.java
+new file mode 100644
+index 000000000000..47f311e571b2
+--- /dev/null
++++ b/services/core/java/com/android/server/wm/NewPointerEventListener.java
+@@ -0,0 +1,159 @@
++package com.android.server.wm;
++
++
++import static android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE;
++import static android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
++import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_BEHAVIOR_CONTROLLED;
++import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_OPTIMIZE_MEASURE;
++
++import android.app.Dialog;
++import android.content.Context;
++import android.graphics.PixelFormat;
++import android.graphics.Rect;
++import android.graphics.Region;
++import android.graphics.drawable.Drawable;
++import android.os.Binder;
++import android.util.Log;
++import android.view.Gravity;
++import android.view.LayoutInflater;
++import android.view.MotionEvent;
++import android.view.View;
++import android.view.ViewGroup;
++import android.view.Window;
++import android.view.WindowManager;
++import android.view.WindowManagerPolicyConstants.PointerEventListener;
++import android.widget.ImageView;
++
++import com.android.internal.R;
++
++public class NewPointerEventListener implements PointerEventListener {
++
++    public static final String TAG = "NewPointerEventListener";
++
++    private final WindowManagerService mService;
++    private final DisplayContent mDisplayContent;
++
++    //private Dialog d = null;
++
++    private View view =null;
++    Drawable leftIcon ,rightIcon = null;
++
++    private ActivityRecord mRightActivityRecord = null;
++
++    int mStartX,mStartY;
++
++    public NewPointerEventListener(WindowManagerService service, DisplayContent displayContent) {
++        mService = service;
++        mDisplayContent = displayContent;
++    }
++
++    @Override
++    public void onPointerEvent(MotionEvent motionEvent) {
++        switch (motionEvent.getActionMasked()) {
++            case MotionEvent.ACTION_DOWN: {
++                mStartX  = (int) motionEvent.getX();
++                mStartY = (int) motionEvent.getY();
++
++                mDisplayContent.forAllActivities(r ->{
++                    if (r == null) return;
++                    ActivityRecord.State state = r.getState();
++                    if (state == ActivityRecord.State.RESUMED && r.inFreeformWindowingMode()){
++
++                        Rect mRect = r.getBounds();
++
++                        if (mRect.left == 773){ // 中间task
++                            leftIcon = r.info.loadIcon(mService.mContext.getPackageManager());
++                        }else if (mRect.left == 1768){ // 右边task
++                            mRightActivityRecord = r;
++                            rightIcon = r.info.loadIcon(mService.mContext.getPackageManager());
++                        }
++                    }
++
++                });
++
++                if (leftIcon !=null && rightIcon != null){
++                    showWindow(leftIcon,rightIcon);
++                }
++                break;
++            }
++
++            case MotionEvent.ACTION_MOVE: {
++
++                int mCurent = (int) motionEvent.getX();
++                int offset = mCurent - mStartX;
++                move(offset);
++                mStartX = (int) motionEvent.getX();
++
++                break;
++            }
++
++            case MotionEvent.ACTION_UP: {
++                if (view !=null){
++                    resizeTask();
++                    dismissWindow();
++                    leftIcon = null;
++                    rightIcon = null;
++                    view = null;
++                }
++                break;
++            }
++        }
++    }
++
++    private void resizeTask(){
++        if (mRightActivityRecord ==null) return;
++        Task rootTask = mRightActivityRecord.getTask().getRootTask();
++        rootTask.setBounds(new Rect(770+3,0,2760-3,1440),true);
++    }
++
++    private void showWindow(Drawable leftIcon ,Drawable rightIcon){
++        final Context mContext = mService.mContext;
++        final WindowManager mWindowManager = mContext.getSystemService(WindowManager.class);
++
++        WindowManager.LayoutParams mLp = new WindowManager.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT,
++                ViewGroup.LayoutParams.MATCH_PARENT,
++                WindowManager.LayoutParams.TYPE_VOLUME_OVERLAY,
++                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
++                        | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
++                        | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH
++                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
++                        | WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS,
++                PixelFormat.TRANSLUCENT);
++        mLp.token = new Binder();
++        mLp.gravity = Gravity.CENTER|Gravity.RIGHT;
++        mLp.setFitInsetsTypes(0 /* types */);
++        mLp.setTitle("FreeformShade");
++        mLp.packageName = mContext.getPackageName();
++        mLp.layoutInDisplayCutoutMode = LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
++        mLp.privateFlags |= PRIVATE_FLAG_OPTIMIZE_MEASURE;
++        mLp.privateFlags |= PRIVATE_FLAG_BEHAVIOR_CONTROLLED;
++        mLp.insetsFlags.behavior = BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE;
++
++        view = LayoutInflater.from(mContext).inflate(com.android.internal.R.layout.freeform_animation,null);
++        ImageView imageLeft = view.findViewById(com.android.internal.R.id.image_left);
++        imageLeft.setImageDrawable(leftIcon);
++        ImageView imageRight = view.findViewById(com.android.internal.R.id.image_right);
++        imageRight.setImageDrawable(rightIcon);
++
++        mWindowManager.addView(view, mLp);
++    }
++
++    private void move(int offset){
++        if (view == null) return;
++        View mLeft = view.findViewById(com.android.internal.R.id.root_left);
++        ViewGroup.LayoutParams mLeftLayoutParams = mLeft.getLayoutParams();
++        mLeftLayoutParams.width += offset;
++        mLeft.setLayoutParams(mLeftLayoutParams);
++    }
++
++    private void dismissWindow(){
++        try {
++            final Context mContext = mService.mContext;
++            final WindowManager mWindowManager = mContext.getSystemService(WindowManager.class);
++            mWindowManager.removeViewImmediate(view);
++        }catch (Exception e){
++            e.printStackTrace();
++        }
++    }
++}

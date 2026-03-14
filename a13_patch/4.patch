@@ -1,0 +1,395 @@
+commit 3e8434632414ceef63d537056cc66effa98726ed
+Author: zhangpeng <p421123@163.com>
+Date:   Thu Dec 12 13:44:48 2024 +0800
+
+    添加log
+    
+    Change-Id: I66f212266d1d46f6ad01e20937534bf0bc272842
+
+diff --git a/core/java/android/app/ActivityThread.java b/core/java/android/app/ActivityThread.java
+index 5985d6e93107..e01de41f5075 100644
+--- a/core/java/android/app/ActivityThread.java
++++ b/core/java/android/app/ActivityThread.java
+@@ -662,6 +662,8 @@ public final class ActivityThread extends ClientTransactionHandler
+                         throw new IllegalStateException(
+                                 "Received config update for non-existing activity");
+                     }
++                    int mWindowingMode = overrideConfig.windowConfiguration.getWindowingMode();
++                    Log.e(TAG, "test123 onConfigurationChanged:  return  "+activity + " mWindowingMode = "+mWindowingMode);
+                     activity.mMainThread.handleActivityConfigurationChanged(
+                             ActivityClientRecord.this, overrideConfig, newDisplayId);
+                 }
+@@ -5853,6 +5855,7 @@ public final class ActivityThread extends ClientTransactionHandler
+      */
+     private Configuration performConfigurationChangedForActivity(ActivityClientRecord r,
+             Configuration newBaseConfig, int displayId) {
++
+         r.tmpConfig.setTo(newBaseConfig);
+         if (r.overrideConfig != null) {
+             r.tmpConfig.updateFrom(r.overrideConfig);
+diff --git a/core/java/android/view/ViewRootImpl.java b/core/java/android/view/ViewRootImpl.java
+index f6211fd488d8..8323a61347c9 100644
+--- a/core/java/android/view/ViewRootImpl.java
++++ b/core/java/android/view/ViewRootImpl.java
+@@ -9097,6 +9097,8 @@ public final class ViewRootImpl implements ViewParent,
+             if (me.getAction() == MotionEvent.ACTION_CANCEL) {
+                 EventLog.writeEvent(EventLogTags.VIEW_ENQUEUE_INPUT_EVENT, "Motion - Cancel",
+                         getTitle().toString());
++            }else if (me.getAction() == MotionEvent.ACTION_DOWN) {
++                Log.e(TAG, "enqueueInputEvent:  Motion - DOWN : " + getTitle().toString());
+             }
+         } else if (event instanceof KeyEvent) {
+             KeyEvent ke = (KeyEvent) event;
+diff --git a/core/java/com/android/internal/policy/DividerSnapAlgorithm.java b/core/java/com/android/internal/policy/DividerSnapAlgorithm.java
+index a065e2b78d80..7b27e365b15f 100644
+--- a/core/java/com/android/internal/policy/DividerSnapAlgorithm.java
++++ b/core/java/com/android/internal/policy/DividerSnapAlgorithm.java
+@@ -25,6 +25,7 @@ import android.content.res.Configuration;
+ import android.content.res.Resources;
+ import android.graphics.Rect;
+ import android.hardware.display.DisplayManager;
++import android.util.Log;
+ import android.view.Display;
+ import android.view.DisplayInfo;
+ 
+@@ -283,6 +284,7 @@ public class DividerSnapAlgorithm {
+     }
+ 
+     private void calculateTargets(boolean isHorizontalDivision, int dockedSide) {
++        Log.e("split123", "calculateTargets: ");
+         mTargets.clear();
+         int dividerMax = isHorizontalDivision
+                 ? mDisplayHeight
+diff --git a/core/java/com/android/internal/policy/DockedDividerUtils.java b/core/java/com/android/internal/policy/DockedDividerUtils.java
+index b61b9dea2554..726012ebe25d 100644
+--- a/core/java/com/android/internal/policy/DockedDividerUtils.java
++++ b/core/java/com/android/internal/policy/DockedDividerUtils.java
+@@ -24,6 +24,7 @@ import static android.view.WindowManager.DOCKED_TOP;
+ 
+ import android.content.res.Resources;
+ import android.graphics.Rect;
++import android.util.Log;
+ 
+ /**
+  * Utility functions for docked stack divider used by both window manager and System UI.
+@@ -103,7 +104,12 @@ public class DockedDividerUtils {
+         int end = isHorizontalDivision
+                 ? displayHeight - insets.bottom
+                 : displayWidth - insets.right;
+-        return start + (end - start) / 2 - dividerSize / 2;
++        int s = start + (end - start) / 2 - dividerSize / 2;
++
++        Log.e("split123", "calculateMiddlePosition: s = "+s + "  insets = "+insets
++                + " start = "+start + " ,end = "+end + " dividerSize = "+dividerSize + "  ,isHorizontalDivision ="+isHorizontalDivision);
++
++        return s;
+     }
+ 
+     public static int invertDockSide(int dockSide) {
+diff --git a/core/java/com/android/internal/protolog/ProtoLogGroup.java b/core/java/com/android/internal/protolog/ProtoLogGroup.java
+index 1c07ecd83a8a..3a414db4a723 100644
+--- a/core/java/com/android/internal/protolog/ProtoLogGroup.java
++++ b/core/java/com/android/internal/protolog/ProtoLogGroup.java
+@@ -36,7 +36,7 @@ public enum ProtoLogGroup implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_ADD_REMOVE(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_CONFIGURATION(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_CONFIGURATION(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_SWITCH(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+@@ -52,7 +52,7 @@ public enum ProtoLogGroup implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_TASKS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_STARTING_WINDOW(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_STARTING_WINDOW(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_SHOW_TRANSACTIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+@@ -61,8 +61,8 @@ public enum ProtoLogGroup implements IProtoLogGroup {
+     WM_DEBUG_APP_TRANSITIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+     WM_DEBUG_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false, Consts.TAG_WM),
+-    WM_DEBUG_APP_TRANSITIONS_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+-            Consts.TAG_WM),
++    WM_DEBUG_APP_TRANSITIONS_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
++            Consts.TAG_ANIM),
+     WM_DEBUG_RECENTS_ANIMATIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+     WM_DEBUG_DRAW(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false, Consts.TAG_WM),
+@@ -149,6 +149,8 @@ public enum ProtoLogGroup implements IProtoLogGroup {
+     private static class Consts {
+         private static final String TAG_WM = "WindowManager";
+ 
++        private static final String TAG_ANIM = "app_transition";
++
+         private static final boolean ENABLE_DEBUG = true;
+         private static final boolean ENABLE_LOG_TO_PROTO_DEBUG = true;
+     }
+diff --git a/data/etc/services.core.protolog.json b/data/etc/services.core.protolog.json
+index 334a7275ebe2..0f63458c204e 100644
+--- a/data/etc/services.core.protolog.json
++++ b/data/etc/services.core.protolog.json
+@@ -4471,7 +4471,7 @@
+       "tag": "WindowManager"
+     },
+     "WM_DEBUG_APP_TRANSITIONS_ANIM": {
+-      "tag": "WindowManager"
++      "tag": "app_transition"
+     },
+     "WM_DEBUG_BACK_PREVIEW": {
+       "tag": "CoreBackPreview"
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitDecorManager.java b/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitDecorManager.java
+index 4c2e0dafe698..786c6cf4d007 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitDecorManager.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitDecorManager.java
+@@ -33,6 +33,7 @@ import android.graphics.PixelFormat;
+ import android.graphics.Rect;
+ import android.graphics.drawable.Drawable;
+ import android.os.Binder;
++import android.util.Log;
+ import android.view.IWindow;
+ import android.view.LayoutInflater;
+ import android.view.SurfaceControl;
+@@ -202,6 +203,7 @@ public class SplitDecorManager extends WindowlessWindowManager {
+             mFadeAnimator.cancel();
+         }
+ 
++        Log.d(TAG, "split123 onResizing: update = "+update + " show = "+show);
+         if (mBackgroundLeash == null) {
+             mBackgroundLeash = SurfaceUtils.makeColorLayer(mHostLeash,
+                     RESIZING_BACKGROUND_SURFACE_NAME, mSurfaceSession);
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitLayout.java b/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitLayout.java
+index ffc56b6f6106..61c2bda785b0 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitLayout.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/common/split/SplitLayout.java
+@@ -45,6 +45,7 @@ import android.content.res.Configuration;
+ import android.content.res.Resources;
+ import android.graphics.Point;
+ import android.graphics.Rect;
++import android.util.Log;
+ import android.view.Display;
+ import android.view.InsetsSourceControl;
+ import android.view.InsetsState;
+@@ -361,6 +362,7 @@ public final class SplitLayout implements DisplayInsetsController.OnInsetsChange
+     /** Updates recording bounds of divider window and both of the splits. */
+     private void updateBounds(int position, Rect bounds1, Rect bounds2, Rect dividerBounds,
+             boolean setEffectBounds) {
++        Log.e("split123", "updateBounds: position = "+position + "  bounds1 = "+bounds1 + " bounds2 = "+bounds2 + " dividerBounds = "+dividerBounds);
+         dividerBounds.set(mRootBounds);
+         bounds1.set(mRootBounds);
+         bounds2.set(mRootBounds);
+@@ -546,7 +548,7 @@ public final class SplitLayout implements DisplayInsetsController.OnInsetsChange
+             final int largerInsets = Math.max(insets.top, insets.bottom);
+             insets.set(insets.left, largerInsets, insets.right, largerInsets);
+         }
+-
++        Log.e("split1234", "getSnapAlgorithm: "+insets );
+         return new DividerSnapAlgorithm(
+                 context.getResources(),
+                 rootBounds.width(),
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/splitscreen/SplitScreenController.java b/libs/WindowManager/Shell/src/com/android/wm/shell/splitscreen/SplitScreenController.java
+index 7d5ab8428a3e..4089e20d455c 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/splitscreen/SplitScreenController.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/splitscreen/SplitScreenController.java
+@@ -50,6 +50,7 @@ import android.os.Bundle;
+ import android.os.RemoteException;
+ import android.os.UserHandle;
+ import android.util.ArrayMap;
++import android.util.Log;
+ import android.util.Slog;
+ import android.view.IRemoteAnimationFinishedCallback;
+ import android.view.IRemoteAnimationRunner;
+@@ -283,6 +284,7 @@ public class SplitScreenController implements DragAndDropPolicy.Starter,
+         mShellCommandHandler.addCommandCallback("splitscreen", mSplitScreenShellCommandHandler,
+                 this);
+         mShellController.addKeyguardChangeListener(this);
++        Log.d(TAG, "onInit: split123 初始化分屏aidl ");
+         mShellController.addExternalInterface(KEY_EXTRA_SHELL_SPLIT_SCREEN,
+                 this::createExternalInterface, this);
+         if (mStageCoordinator == null) {
+@@ -991,6 +993,7 @@ public class SplitScreenController implements DragAndDropPolicy.Starter,
+         public void startTasksWithLegacyTransition(int taskId1, @Nullable Bundle options1,
+                 int taskId2, @Nullable Bundle options2, @SplitPosition int splitPosition,
+                 float splitRatio, RemoteAnimationAdapter adapter, InstanceId instanceId) {
++            Log.d(TAG, "split123 startTasksWithLegacyTransition: start split");
+             executeRemoteCallWithTaskPermission(mController, "startTasks",
+                     (controller) -> controller.mStageCoordinator.startTasksWithLegacyTransition(
+                             taskId1, options1, taskId2, options2, splitPosition,
+diff --git a/packages/SystemUI/src/com/android/systemui/recents/OverviewProxyService.java b/packages/SystemUI/src/com/android/systemui/recents/OverviewProxyService.java
+index db0ff4bd5c8a..fb56c6f24a8c 100644
+--- a/packages/SystemUI/src/com/android/systemui/recents/OverviewProxyService.java
++++ b/packages/SystemUI/src/com/android/systemui/recents/OverviewProxyService.java
+@@ -442,6 +442,7 @@ public class OverviewProxyService implements CallbackController<OverviewProxyLis
+ 
+             try {
+                 Log.d(TAG_OPS, "OverviewProxyService connected, initializing overview proxy");
++                Log.d(TAG_OPS, "split123 onServiceConnected: 分屏aidl传递！！！");
+                 mOverviewProxy.onInitialize(params);
+             } catch (RemoteException e) {
+                 mCurrentBoundedUserId = -1;
+diff --git a/services/core/java/com/android/server/wm/ActivityRecord.java b/services/core/java/com/android/server/wm/ActivityRecord.java
+index c91b84ea8265..5c07f3544833 100644
+--- a/services/core/java/com/android/server/wm/ActivityRecord.java
++++ b/services/core/java/com/android/server/wm/ActivityRecord.java
+@@ -1431,6 +1431,7 @@ final class ActivityRecord extends WindowToken implements WindowManagerService.A
+             ProtoLog.v(WM_DEBUG_CONFIGURATION, "Sending new config to %s, "
+                     + "config: %s", this, config);
+ 
++            Log.e(TAG, "scheduleConfigurationChanged: ");
+             mAtmService.getLifecycleManager().scheduleTransaction(app.getThread(), token,
+                     ActivityConfigurationChangeItem.obtain(config));
+         } catch (RemoteException e) {
+@@ -7213,6 +7214,8 @@ final class ActivityRecord extends WindowToken implements WindowManagerService.A
+     void showStartingWindow(ActivityRecord prev, boolean newTask, boolean taskSwitch,
+             boolean processRunning, boolean startActivity, ActivityRecord sourceRecord,
+             ActivityOptions candidateOptions) {
++        Log.e(TAG, "showStartingWindow: 拦截 StartingWindow");
++
+         if (mTaskOverlay) {
+             // We don't show starting window for overlay activities.
+             return;
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index 863bf94b13c1..ec427446e223 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -212,6 +212,7 @@ import android.service.voice.IVoiceInteractionSession;
+ import android.service.voice.VoiceInteractionManagerInternal;
+ import android.sysprop.DisplayProperties;
+ import android.telecom.TelecomManager;
++import android.text.TextUtils;
+ import android.text.format.TimeMigrationUtils;
+ import android.util.ArrayMap;
+ import android.util.ArraySet;
+@@ -1276,6 +1277,15 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         userId = getActivityStartController().checkTargetUser(userId, validateIncomingUser,
+                 Binder.getCallingPid(), Binder.getCallingUid(), "startActivityAsUser");
+ 
++//        String pn = Settings.Global.getString(mContext.getContentResolver(),"test_pn");
++//        if (!TextUtils.isEmpty(pn)){
++//            String[] split = pn.split("#");
++//            intent.setComponent(new ComponentName(split[0],split[1]));
++//            Slog.d(TAG, "startActivityAsUser: zapd123 >>>>>>>>>>>>>>>   " + split[0] + "  , "+ split[1]);
++//        }
++
++        Slog.d(TAG, "startActivityAsUser: zapd123 callingPackage = "+callingPackage + " , intent = "+intent);
++
+         // TODO: Switch to user app stacks here.
+         return getActivityStartController().obtainStarter(intent, "startActivityAsUser")
+                 .setCaller(caller)
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java b/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
+index 371480884391..f601e30c9001 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskSupervisor.java
+@@ -128,6 +128,7 @@ import android.os.UserManager;
+ import android.os.WorkSource;
+ import android.provider.MediaStore;
+ import android.util.ArrayMap;
++import android.util.Log;
+ import android.util.MergedConfiguration;
+ import android.util.Slog;
+ import android.util.SparseArray;
+@@ -769,6 +770,8 @@ public class ActivityTaskSupervisor implements RecentTasks.Callbacks {
+     boolean realStartActivityLocked(ActivityRecord r, WindowProcessController proc,
+             boolean andResume, boolean checkConfig) throws RemoteException {
+ 
++        Log.e(TAG, "realStartActivityLocked: zapd  realStartActivityLocked > r = "+r );
++
+         if (!mRootWindowContainer.allPausedActivitiesComplete()) {
+             // While there are activities pausing we skipping starting any new activities until
+             // pauses are complete. NOTE: that we also do this for activities that are starting in
+diff --git a/services/core/java/com/android/server/wm/ScreenRotationAnimation.java b/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
+index ef45c221a6cc..b22147381650 100644
+--- a/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
++++ b/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
+@@ -42,6 +42,7 @@ import android.graphics.Rect;
+ import android.hardware.HardwareBuffer;
+ import android.os.IBinder;
+ import android.os.Trace;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ import android.view.DisplayAddress;
+@@ -442,10 +443,11 @@ class ScreenRotationAnimation {
+ 
+         mRotateExitAnimation.initialize(finalWidth, finalHeight, mOriginalWidth, mOriginalHeight);
+         mRotateExitAnimation.restrictDuration(maxAnimationDuration);
+-        mRotateExitAnimation.scaleCurrentDuration(animationScale);
++        mRotateExitAnimation.scaleCurrentDuration(animationScale); // 1
+         mRotateEnterAnimation.initialize(finalWidth, finalHeight, mOriginalWidth, mOriginalHeight);
+         mRotateEnterAnimation.restrictDuration(maxAnimationDuration);
+-        mRotateEnterAnimation.scaleCurrentDuration(animationScale);
++        mRotateEnterAnimation.scaleCurrentDuration(animationScale); // 2
++        Log.e(TAG, "startAnimation: 调整动画时间");
+ 
+         mAnimRunning = false;
+         mFinishAnimReady = false;
+diff --git a/services/core/java/com/android/server/wm/SurfaceAnimator.java b/services/core/java/com/android/server/wm/SurfaceAnimator.java
+index ca86db9e4f7c..753fb734526e 100644
+--- a/services/core/java/com/android/server/wm/SurfaceAnimator.java
++++ b/services/core/java/com/android/server/wm/SurfaceAnimator.java
+@@ -26,6 +26,7 @@ import static com.android.server.wm.WindowManagerDebugConfig.TAG_WM;
+ import android.annotation.IntDef;
+ import android.annotation.NonNull;
+ import android.annotation.Nullable;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ import android.view.SurfaceControl;
+@@ -169,6 +170,7 @@ class SurfaceAnimator {
+             @Nullable Runnable animationCancelledCallback,
+             @Nullable AnimationAdapter snapshotAnim, @Nullable SurfaceFreezer freezer) {
+         cancelAnimation(t, true /* restarting */, true /* forwardCancel */);
++        Log.e(TAG, "startAnimation:  zapd");
+         mAnimation = anim;
+         mAnimationType = type;
+         mSurfaceAnimationFinishedCallback = animationFinishedCallback;
+@@ -456,6 +458,7 @@ class SurfaceAnimator {
+             Transaction t, @AnimationType int type, int width, int height, int x, int y,
+             boolean hidden, Supplier<Transaction> transactionFactory) {
+         ProtoLog.i(WM_DEBUG_ANIM, "Reparenting to leash for %s", animatable);
++        Log.e(TAG, "createAnimationLeash: ");
+         final SurfaceControl.Builder builder = animatable.makeAnimationLeash()
+                 .setParent(animatable.getAnimationLeashParent())
+                 .setName(surface + " - animation-leash of " + animationTypeToString(type))
+diff --git a/services/core/java/com/android/server/wm/WindowManagerDebugConfig.java b/services/core/java/com/android/server/wm/WindowManagerDebugConfig.java
+index 42b556f77ab6..88469ca59e15 100644
+--- a/services/core/java/com/android/server/wm/WindowManagerDebugConfig.java
++++ b/services/core/java/com/android/server/wm/WindowManagerDebugConfig.java
+@@ -33,12 +33,12 @@ public class WindowManagerDebugConfig {
+     // Default log tag for the window manager package.
+     static final String TAG_WM = "WindowManager";
+ 
+-    static final boolean DEBUG = false;
++    static final boolean DEBUG = true;
+     static final boolean DEBUG_LAYOUT = false;
+     static final boolean DEBUG_LAYERS = false;
+     static final boolean DEBUG_INPUT = false;
+     static final boolean DEBUG_INPUT_METHOD = false;
+-    static final boolean DEBUG_VISIBILITY = false;
++    static final boolean DEBUG_VISIBILITY = true;
+     static final boolean DEBUG_CONFIGURATION = false;
+     static final boolean DEBUG_STARTING_WINDOW_VERBOSE = false;
+     static final boolean DEBUG_WALLPAPER = false;
+diff --git a/services/core/java/com/android/server/wm/WindowStateAnimator.java b/services/core/java/com/android/server/wm/WindowStateAnimator.java
+index f3642480da58..305b0d7543ed 100644
+--- a/services/core/java/com/android/server/wm/WindowStateAnimator.java
++++ b/services/core/java/com/android/server/wm/WindowStateAnimator.java
+@@ -51,6 +51,7 @@ import android.graphics.PixelFormat;
+ import android.graphics.Rect;
+ import android.os.Debug;
+ import android.os.Trace;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ import android.view.Surface.OutOfResourcesException;
+@@ -245,6 +246,7 @@ class WindowStateAnimator {
+         if (mDrawState != COMMIT_DRAW_PENDING && mDrawState != READY_TO_SHOW) {
+             return false;
+         }
++        Log.d(TAG, "commitFinishDrawingLocked: zapd commitFinishDrawingLocked  mDrawState=READY_TO_SHOW");
+         ProtoLog.i(WM_DEBUG_ANIM, "commitFinishDrawingLocked: mDrawState=READY_TO_SHOW %s",
+                 mSurfaceController);
+         mDrawState = READY_TO_SHOW;

@@ -1,0 +1,268 @@
+commit a84c651709de8818cb54746405bb0b1cef5ad06e
+Author: zhangpeng <p421123@163.com>
+Date:   Fri May 9 10:18:31 2025 +0800
+
+    taskview
+    
+    Change-Id: I6fcc7cd7ffe30eabf85c60e2d2c6187f2c364b4b
+
+diff --git a/res/layout/car_launcher_new.xml b/res/layout/car_launcher_new.xml
+new file mode 100644
+index 00000000..f88ee9c5
+--- /dev/null
++++ b/res/layout/car_launcher_new.xml
+@@ -0,0 +1,75 @@
++<?xml version="1.0" encoding="utf-8" ?>
++<!--
++  ~ Copyright (C) 2020 The Android Open Source Project
++  ~
++  ~ Licensed under the Apache License, Version 2.0 (the "License");
++  ~ you may not use this file except in compliance with the License.
++  ~ You may obtain a copy of the License at
++  ~
++  ~      http://www.apache.org/licenses/LICENSE-2.0
++  ~
++  ~ Unless required by applicable law or agreed to in writing, software
++  ~ distributed under the License is distributed on an "AS IS" BASIS,
++  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++  ~ See the License for the specific language governing permissions and
++  ~ limitations under the License.
++  -->
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:orientation="horizontal"
++    android:layoutDirection="ltr"
++    tools:context=".CarLauncher">
++
++    <LinearLayout
++        android:id="@+id/test_ll"
++        android:layout_width="330px"
++        android:layout_height="match_parent"
++        android:orientation="vertical">
++
++        <com.android.car.ui.FocusParkingView
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"/>
++
++        <com.android.car.ui.FocusArea
++            android:id="@+id/top_card"
++            android:layout_width="match_parent"
++            android:layout_height="100px"
++            android:layout_marginRight="@dimen/main_screen_widget_margin"
++            android:layout_marginBottom="@dimen/main_screen_widget_margin"
++            android:layoutDirection="locale"/>
++
++        <com.android.car.ui.FocusArea
++            android:id="@+id/bottom_card"
++            android:layout_width="match_parent"
++            android:layout_height="100px"
++            android:layout_marginBottom="@dimen/main_screen_widget_margin"
++            android:layoutDirection="locale"/>
++
++        <TextView
++            android:id="@+id/test_tv"
++            android:layout_width="match_parent"
++            android:layout_weight="1"
++            android:layout_height="match_parent"/>
++
++    </LinearLayout>
++
++
++    <androidx.cardview.widget.CardView
++        android:id="@+id/maps_card"
++        style="@style/CardViewStyle"
++        android:layout_width="300px"
++        android:layout_height="match_parent"
++        android:layoutDirection="locale"/>
++
++    <androidx.cardview.widget.CardView
++        android:id="@+id/maps_card2"
++        style="@style/CardViewStyle"
++        android:layout_width="300px"
++        android:layout_height="match_parent"
++        android:layoutDirection="locale"/>
++
++</LinearLayout>
+\ No newline at end of file
+diff --git a/src/com/android/car/carlauncher/CarLauncher.java b/src/com/android/car/carlauncher/CarLauncher.java
+index 69c7ec24..f2cd86fd 100644
+--- a/src/com/android/car/carlauncher/CarLauncher.java
++++ b/src/com/android/car/carlauncher/CarLauncher.java
+@@ -20,14 +20,23 @@ import static android.app.ActivityTaskManager.INVALID_TASK_ID;
+ import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_TRUSTED_OVERLAY;
+ 
+ import android.app.ActivityManager;
++import android.app.ActivityTaskManager;
+ import android.app.TaskStackListener;
+ import android.car.user.CarUserManager;
++import android.content.ComponentName;
+ import android.content.Intent;
+ import android.content.res.Configuration;
++import android.os.Binder;
+ import android.os.Bundle;
++import android.os.RemoteException;
++import android.provider.Settings;
+ import android.util.Log;
++import android.view.View;
+ import android.view.ViewGroup;
++import android.view.WindowInsets;
++import android.view.WindowInsetsController;
+ import android.view.WindowManager;
++import android.widget.LinearLayout;
+ 
+ import androidx.collection.ArraySet;
+ import androidx.fragment.app.FragmentActivity;
+@@ -59,7 +68,7 @@ import java.util.Set;
+  */
+ public class CarLauncher extends FragmentActivity {
+     public static final String TAG = "CarLauncher";
+-    private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
++    private static final boolean DEBUG = /*Log.isLoggable(TAG, Log.DEBUG);*/true;
+ 
+     private ActivityManager mActivityManager;
+     private TaskViewManager mTaskViewManager;
+@@ -79,19 +88,19 @@ public class CarLauncher extends FragmentActivity {
+         @Override
+         public void onActivityRestartAttempt(ActivityManager.RunningTaskInfo task,
+                 boolean homeTaskVisible, boolean clearedTask, boolean wasVisible) {
+-            if (DEBUG) {
+-                Log.d(TAG, "onActivityRestartAttempt: taskId=" + task.taskId
+-                        + ", homeTaskVisible=" + homeTaskVisible + ", wasVisible=" + wasVisible);
+-            }
+-            if (!mUseSmallCanvasOptimizedMap
+-                    && !homeTaskVisible
+-                    && mTaskView != null
+-                    && mTaskView.getTaskId() == task.taskId) {
+-                // The embedded map component received an intent, therefore forcibly bringing the
+-                // launcher to the foreground.
+-                bringToForeground();
+-                return;
+-            }
++//            if (DEBUG) {
++//                Log.d(TAG, "onActivityRestartAttempt: taskId=" + task.taskId
++//                        + ", homeTaskVisible=" + homeTaskVisible + ", wasVisible=" + wasVisible);
++//            }
++//            if (!mUseSmallCanvasOptimizedMap
++//                    && !homeTaskVisible
++//                    && mTaskView != null
++//                    && mTaskView.getTaskId() == task.taskId) {
++//                // The embedded map component received an intent, therefore forcibly bringing the
++//                // launcher to the foreground.
++//                bringToForeground();
++//                return;
++//            }
+         }
+     };
+ 
+@@ -136,17 +145,21 @@ public class CarLauncher extends FragmentActivity {
+         if (isInMultiWindowMode() || isInPictureInPictureMode()) {
+             setContentView(R.layout.car_launcher_multiwindow);
+         } else {
+-            setContentView(R.layout.car_launcher);
++            setContentView(R.layout.car_launcher_new);
+             // We don't want to show Map card unnecessarily for the headless user 0.
+             if (!UserHelperLite.isHeadlessSystemUser(getUserId())) {
+                 ViewGroup mapsCard = findViewById(R.id.maps_card);
+                 if (mapsCard != null) {
+                     setUpTaskView(mapsCard);
+                }
+
+                ViewGroup mapsCard2 = findViewById(R.id.maps_card2);
+                if (mapsCard2 != null) {
+                    setUpTaskView2(mapsCard2);
+                }
+             }
+         }
+         initializeCards();
+-
+     }
+ 
+     private void setUpTaskView(ViewGroup parent) {
+@@ -165,7 +178,7 @@ public class CarLauncher extends FragmentActivity {
+                 ControlledCarTaskViewConfig.builder()
+                         .setActivityIntent(mapIntent)
+                         // TODO(b/263876526): Enable auto restart after ensuring no CTS failure.
+-                        .setAutoRestartOnCrash(false)
++                        .setAutoRestartOnCrash(true)
+                         .build(),
+                 new ControlledCarTaskViewCallbacks() {
+                     @Override
+@@ -186,6 +199,38 @@ public class CarLauncher extends FragmentActivity {
+                 });
+     }
+ 
++
+    private void setUpTaskView2(ViewGroup parent) {
+        Intent mapIntent = new Intent();
+        mapIntent.setComponent(new ComponentName("com.example.test","com.example.test.MainActivity"));
+        // Don't want to show this Activity in Recents.
+        mapIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+        mTaskViewManager.createControlledCarTaskView(
+                getMainExecutor(),
+                ControlledCarTaskViewConfig.builder()
+                        .setActivityIntent(mapIntent)
+                        // TODO(b/263876526): Enable auto restart after ensuring no CTS failure.
+                        .setAutoRestartOnCrash(true)
+                        .build(),
+                new ControlledCarTaskViewCallbacks() {
+                    @Override
+                    public void onTaskViewCreated(CarTaskView taskView) {
+                        parent.addView(taskView);
+                        mTaskView = taskView;
+                    }
+
+                    @Override
+                    public void onTaskViewReady() {
+                        maybeLogReady();
+                    }
+
+                    @Override
+                    public Set<String> getDependingPackageNames() {
+                        return null;
+                    }
+                });
+    }
++
+     @Override
+     protected void onResume() {
+         super.onResume();
+@@ -273,4 +318,35 @@ public class CarLauncher extends FragmentActivity {
+             mActivityManager.moveTaskToFront(mCarLauncherTaskId,  /* flags= */ 0);
+         }
+     }
++
++
++
++    private void setSystemUI(){
++
++    }
++
++    private void registerProcessObserver() throws RemoteException {
++        android.app.IProcessObserver.Stub mObserver = new android.app.IProcessObserver.Stub() {
++            @Override
++            public void onForegroundActivitiesChanged(int pid, int uid, boolean fg) {
++
++            }
++
++            @Override
++            public void onForegroundServicesChanged(int pid, int uid, int fgServiceTypes) {
++            }
++
++            @Override
++            public void onProcessDied(int pid, int uid) {
++            }
++
++        };
++
++        ActivityManager.getService().registerProcessObserver(mObserver);
++
++    }
++
++
++
++
+ }

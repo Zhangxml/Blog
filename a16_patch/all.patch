@@ -1,0 +1,556 @@
+diff --git a/core/java/android/app/Activity.java b/core/java/android/app/Activity.java
+index c129fde3f819..fecf13ce514c 100644
+--- a/core/java/android/app/Activity.java
++++ b/core/java/android/app/Activity.java
+@@ -771,7 +771,7 @@ public class Activity extends ContextThemeWrapper
+         Window.OnWindowDismissedCallback,
+         ContentCaptureManager.ContentCaptureClient {
+     private static final String TAG = "Activity";
+-    private static final boolean DEBUG_LIFECYCLE = false;
++    private static final boolean DEBUG_LIFECYCLE = true;
+ 
+     /** Standard activity result: operation canceled. */
+     public static final int RESULT_CANCELED    = 0;
+diff --git a/core/java/android/app/ContextImpl.java b/core/java/android/app/ContextImpl.java
+index 99a2763650cd..033023dd2169 100644
+--- a/core/java/android/app/ContextImpl.java
++++ b/core/java/android/app/ContextImpl.java
+@@ -473,6 +473,7 @@ class ContextImpl extends Context {
+ 
+     @Override
+     public Context getApplicationContext() {
++        Log.e(TAG, "test0910 getApplicationContext: " + mPackageInfo + "  "+Debug.getCallers(10));
+         return (mPackageInfo != null) ?
+                 mPackageInfo.getApplication() : mMainThread.getApplication();
+     }
+@@ -2934,6 +2935,7 @@ class ContextImpl extends Context {
+ 
+     private void setDisplay(Display display) {
+         mDisplay = display;
++        Log.e(TAG, "test0910 setDisplay: " + mDisplay + "  "+Debug.getCallers(10));
+         if (display != null) {
+             updateDeviceIdIfChanged(display.getDisplayId());
+         }
+@@ -3155,7 +3157,8 @@ class ContextImpl extends Context {
+ 
+     @Override
+     public Display getDisplay() {
+-        if (!isAssociatedWithDisplay()) {
++        Log.e(TAG, "test0910 getDisplay: " + mContextType);
++        if (!isAssociatedWithDisplay() && !getPackageName().equals("com.example.androidcar")) {
+             throw new UnsupportedOperationException("Tried to obtain display from a Context not "
+                     + "associated with one. Only visual Contexts (such as Activity or one created "
+                     + "with Context#createWindowContext) or ones created with "
+@@ -3189,6 +3192,7 @@ class ContextImpl extends Context {
+ 
+     @Override
+     public Display getDisplayNoVerify() {
++        Log.e(TAG, "test0910 getDisplayNoVerify: " + mDisplay + "  "+Debug.getCallers(10));
+         if (mDisplay == null) {
+             return mResourcesManager.getAdjustedDisplay(Display.DEFAULT_DISPLAY,
+                     mResources);
+@@ -3491,6 +3495,7 @@ class ContextImpl extends Context {
+         context.setResources(packageInfo.getResources());
+         context.mContextType = isSystemOrSystemUI(context) ? CONTEXT_TYPE_SYSTEM_OR_SYSTEM_UI
+                 : CONTEXT_TYPE_NON_UI;
++        Log.e(TAG, "test0910 createAppContext: " +  context +"  "+ Debug.getCallers(10));
+         return context;
+     }
+ 
+@@ -3600,6 +3605,7 @@ class ContextImpl extends Context {
+             opPackageName = container.mOpPackageName;
+             setResources(container.mResources);
+             mDisplay = container.mDisplay;
++            Log.e(TAG, "test0910 ContextImpl: " + mDisplay + "  "+ Debug.getCallers(10));
+             if (!isExplicitDeviceId) {
+                 mIsExplicitDeviceId = container.mIsExplicitDeviceId;
+                 mDeviceId = container.mDeviceId;
+diff --git a/core/java/android/app/IActivityTaskManager.aidl b/core/java/android/app/IActivityTaskManager.aidl
+index 6c6709bb2b47..8065b7fa1d32 100644
+--- a/core/java/android/app/IActivityTaskManager.aidl
++++ b/core/java/android/app/IActivityTaskManager.aidl
+@@ -408,4 +408,6 @@ interface IActivityTaskManager {
+      * @hide
+      */
+     void unregisterScreenCaptureObserver(IBinder activityToken, IScreenCaptureObserver observer);
++
++    void toggleFreeformWindow(boolean enterFreeForm);
+ }
+diff --git a/core/java/android/app/LoadedApk.java b/core/java/android/app/LoadedApk.java
+index d0949ad86e04..1d36edfe4d9e 100644
+--- a/core/java/android/app/LoadedApk.java
++++ b/core/java/android/app/LoadedApk.java
+@@ -37,6 +37,7 @@ import android.content.res.CompatibilityInfo;
+ import android.content.res.Resources;
+ import android.os.Build;
+ import android.os.Bundle;
++import android.os.Debug;
+ import android.os.Environment;
+ import android.os.FileUtils;
+ import android.os.GraphicsEnvironment;
+@@ -196,6 +197,8 @@ public final class LoadedApk {
+         mRegisterPackage = registerPackage;
+         mDisplayAdjustments.setCompatibilityInfo(compatInfo);
+         mAppComponentFactory = createAppFactory(mApplicationInfo, mBaseClassLoader);
++
++        Log.e(TAG, "test0910 LoadedApk: " + Debug.getCallers(10));
+     }
+ 
+     private static ApplicationInfo adjustNativeLibraryPaths(ApplicationInfo info) {
+@@ -1478,6 +1481,7 @@ public final class LoadedApk {
+                 NetworkSecurityConfigProvider.handleNewApplication(appContext);
+                 app = mActivityThread.mInstrumentation.newApplication(
+                         cl, appClass, appContext);
++                Log.e(TAG, "test0910 makeApplicationInner: " + app + "   DisplayId = "+appContext.getDisplayId() + " "+Debug.getCallers(10));
+                 appContext.setOuterContext(app);
+             } catch (Exception e) {
+                 if (!mActivityThread.mInstrumentation.onException(app, e)) {
+diff --git a/core/java/android/view/ViewRootImpl.java b/core/java/android/view/ViewRootImpl.java
+index 2d62ed8c3ffc..a5dae11352d3 100644
+--- a/core/java/android/view/ViewRootImpl.java
++++ b/core/java/android/view/ViewRootImpl.java
+@@ -10528,6 +10528,14 @@ public final class ViewRootImpl implements ViewParent,
+                 }
+             }
+ 
++            if (q.mEvent instanceof MotionEvent && ((MotionEvent)q.mEvent).isTouchEvent()) {
++                MotionEvent mMotionEvent = (MotionEvent)q.mEvent;
++                Log.d("deliverInputEvent to package : ", mContext.getPackageName() +
++                        " ,action : " + mMotionEvent.getAction()
++                        + ",displayId = " + mMotionEvent.getDisplayId()
++                        +", X = " + mMotionEvent.getRawX() + " ,Y = " + mMotionEvent.getRawY());
++            }
++
+             if (stage != null) {
+                 handleWindowFocusChanged();
+                 stage.deliver(q);
+diff --git a/core/java/com/android/internal/protolog/WmProtoLogGroups.java b/core/java/com/android/internal/protolog/WmProtoLogGroups.java
+index b8b70b16a20c..312cfd462153 100644
+--- a/core/java/com/android/internal/protolog/WmProtoLogGroups.java
++++ b/core/java/com/android/internal/protolog/WmProtoLogGroups.java
+@@ -40,7 +40,7 @@ public enum WmProtoLogGroups implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_ADD_REMOVE(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_CONFIGURATION(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_CONFIGURATION(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_SWITCH(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+@@ -64,13 +64,13 @@ public enum WmProtoLogGroups implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_APP_TRANSITIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false, Consts.TAG_WM),
+-    WM_DEBUG_APP_TRANSITIONS_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true, Consts.TAG_WM),
++    WM_DEBUG_APP_TRANSITIONS_ANIM(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_RECENTS_ANIMATIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+     WM_DEBUG_DRAW(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false, Consts.TAG_WM),
+-    WM_DEBUG_REMOTE_ANIMATIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_REMOTE_ANIMATIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_SCREEN_ON(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false, Consts.TAG_WM),
+     WM_DEBUG_KEEP_SCREEN_ON(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+@@ -85,7 +85,7 @@ public enum WmProtoLogGroups implements IProtoLogGroup {
+             Consts.TAG_WM),
+     WM_DEBUG_SYNC_ENGINE(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
+             Consts.TAG_WM),
+-    WM_DEBUG_WINDOW_TRANSITIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, false,
++    WM_DEBUG_WINDOW_TRANSITIONS(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+     WM_DEBUG_WINDOW_TRANSITIONS_MIN(Consts.ENABLE_DEBUG, Consts.ENABLE_LOG_TO_PROTO_DEBUG, true,
+             Consts.TAG_WM),
+diff --git a/core/res/res/values/config.xml b/core/res/res/values/config.xml
+index 59c7fd027a79..5a2ea5e82616 100644
+--- a/core/res/res/values/config.xml
++++ b/core/res/res/values/config.xml
+@@ -7472,4 +7472,6 @@
+     <!-- Biometrics fingerprint frr notification target activity component name, it shall be customized by OEMs -->
+     <string translatable="false" name="config_fingerprintFrrTargetComponent"></string>
+ 
++    <bool name="config_freeformWindowManagement">true</bool>
++
+ </resources>
+diff --git a/core/res/res/values/symbols.xml b/core/res/res/values/symbols.xml
+index 70e3356a46fe..e66b1e345618 100644
+--- a/core/res/res/values/symbols.xml
++++ b/core/res/res/values/symbols.xml
+@@ -6000,4 +6000,6 @@
+   <java-symbol type="string" name="fingerprint_frr_notification_title" />
+   <java-symbol type="string" name="fingerprint_frr_notification_msg" />
+ 
++  <java-symbol type="bool" name="config_freeformWindowManagement" />
++
+ </resources>
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/taskview/TaskViewTaskController.java b/libs/WindowManager/Shell/src/com/android/wm/shell/taskview/TaskViewTaskController.java
+index a0cc2bc8887b..ccec8df85293 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/taskview/TaskViewTaskController.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/taskview/TaskViewTaskController.java
+@@ -25,6 +25,7 @@ import android.graphics.Rect;
+ import android.gui.TrustedOverlay;
+ import android.os.Binder;
+ import android.util.CloseGuard;
++import android.util.Log;
+ import android.view.SurfaceControl;
+ import android.view.WindowInsets;
+ import android.window.WindowContainerToken;
+@@ -351,6 +352,7 @@ public class TaskViewTaskController implements ShellTaskOrganizer.TaskListener {
+                 mTaskViewController.setTaskViewVisible(this, true /* visible */);
+                 return;
+             }
++            Log.e(TAG, "surfaceCreated: mTaskLeash = " + mTaskLeash + "  , mSurfaceControl = "+ mSurfaceControl);
+             // Reparent the task when this surface is created
+             mTransaction.reparent(mTaskLeash, mSurfaceControl)
+                     .show(mTaskLeash)
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/transition/Transitions.java b/libs/WindowManager/Shell/src/com/android/wm/shell/transition/Transitions.java
+index 84724268cfc2..e366aeedcd0f 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/transition/Transitions.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/transition/Transitions.java
+@@ -1160,8 +1160,12 @@ public class Transitions implements RemoteCallable<Transitions>,
+             Log.e(TAG, "Trying to finish a non-existent transition: " + token);
+             return;
+         }
+-
+-        final Track track = mTracks.get(active.getTrack());
++        int track_ = active.getTrack();
++        if (track_ == -1){
++            Log.e(TAG, "onFinish: " + active);
++            return;
++        }
++        final Track track = mTracks.get(track_);
+         if (track == null || track.mActiveTransition != active) {
+             Log.e(TAG, "Trying to finish a non-running transition. Either remote crashed or "
+                     + " a handler didn't properly deal with a merge. " + active,
+diff --git a/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/CarWindowDecoration.java b/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/CarWindowDecoration.java
+index dc1b94e80ed7..ca273da9c682 100644
+--- a/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/CarWindowDecoration.java
++++ b/libs/WindowManager/Shell/src/com/android/wm/shell/windowdecor/CarWindowDecoration.java
+@@ -23,6 +23,8 @@ import android.content.Context;
+ import android.graphics.Insets;
+ import android.graphics.Rect;
+ import android.graphics.Region;
++import android.os.Debug;
++import android.util.Log;
+ import android.view.InsetsState;
+ import android.view.SurfaceControl;
+ import android.view.View;
+@@ -111,6 +113,7 @@ public class CarWindowDecoration extends WindowDecoration<WindowDecorLinearLayou
+     private void setCaptionVisibility(@NonNull View rootView, boolean visible) {
+         final int v = visible ? View.VISIBLE : View.GONE;
+         final View captionView = rootView.findViewById(getCaptionViewId());
++        Log.e("WindowDecoration", "setCaptionVisibility: " + v  +  "  " + captionView + "  "+ Debug.getCallers(10));
+         if (captionView != null) {
+             captionView.setVisibility(v);
+         }
+diff --git a/services/core/java/com/android/server/am/ActivityManagerShellCommand.java b/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
+index 5c2bd0a0e90f..25d059352c72 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
++++ b/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
+@@ -234,6 +234,15 @@ final class ActivityManagerShellCommand extends ShellCommand {
+         mDumping = dumping;
+     }
+ 
++    public void toggleFreeformWindow(PrintWriter pw) throws RemoteException{
++        String enter = getNextArgRequired();
++        if ("true".equals(enter)){
++            mTaskInterface.toggleFreeformWindow(true);
++        }else if ("false".equals(enter)){
++            mTaskInterface.toggleFreeformWindow(false);
++        }
++    }
++
+     @Override
+     public int onCommand(String cmd) {
+         if (cmd == null) {
+@@ -242,6 +251,9 @@ final class ActivityManagerShellCommand extends ShellCommand {
+         final PrintWriter pw = getOutPrintWriter();
+         try {
+             switch (cmd) {
++                case "freeform":
++                    toggleFreeformWindow(pw);
++                    return 0;
+                 case "help":
+                     onHelp();
+                     return 0;
+diff --git a/services/core/java/com/android/server/wm/ActivityClientController.java b/services/core/java/com/android/server/wm/ActivityClientController.java
+index fd4e38e9813d..881c4d46087b 100644
+--- a/services/core/java/com/android/server/wm/ActivityClientController.java
++++ b/services/core/java/com/android/server/wm/ActivityClientController.java
+@@ -83,6 +83,7 @@ import android.content.Intent;
+ import android.content.pm.ActivityInfo;
+ import android.content.pm.PackageManagerInternal;
+ import android.content.res.Configuration;
++import android.graphics.Rect;
+ import android.net.Uri;
+ import android.os.Binder;
+ import android.os.Bundle;
+@@ -1166,7 +1167,10 @@ class ActivityClientController extends IActivityClientController.Stub {
+                             + "toggle between fullscreen and freeform.");
+                 }
+ 
+-                if (rootTask.inFreeformWindowingMode()) {
++                if (rootTask.getWindowingMode() == WINDOWING_MODE_FULLSCREEN){
++                    rootTask.setBounds(new Rect(0,76,400,696));
++                    rootTask.setWindowingMode(5);
++                }else if (rootTask.inFreeformWindowingMode()) {
+                     rootTask.setRootTaskWindowingMode(WINDOWING_MODE_FULLSCREEN);
+                     rootTask.setBounds(null);
+                 } else if (!r.supportsFreeform()) {
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerDebugConfig.java b/services/core/java/com/android/server/wm/ActivityTaskManagerDebugConfig.java
+index 33d1b44b9743..7c129ea46276 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerDebugConfig.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerDebugConfig.java
+@@ -46,7 +46,7 @@ public class ActivityTaskManagerDebugConfig {
+     static final boolean DEBUG_RECENTS = DEBUG_ALL || false;
+     static final boolean DEBUG_RECENTS_TRIM_TASKS = DEBUG_RECENTS || false;
+     static final boolean DEBUG_ROOT_TASK = DEBUG_ALL || false;
+-    public static final boolean DEBUG_SWITCH = DEBUG_ALL || false;
++    public static final boolean DEBUG_SWITCH = DEBUG_ALL || true;
+     static final boolean DEBUG_TRANSITION = DEBUG_ALL || false;
+     static final boolean DEBUG_VISIBILITY = DEBUG_ALL || false;
+     static final boolean DEBUG_APP = DEBUG_ALL_ACTIVITIES || false;
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index a0c38dd82037..b86c528b84c6 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -38,7 +38,10 @@ import static android.app.ActivityManagerInternal.ALLOW_NON_FULL;
+ import static android.app.ActivityTaskManager.INVALID_TASK_ID;
+ import static android.app.ActivityTaskManager.RESIZE_MODE_PRESERVE_WINDOW;
+ import static android.app.WindowConfiguration.ACTIVITY_TYPE_DREAM;
++import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
++import static android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
+ import static android.app.WindowConfiguration.WINDOWING_MODE_PINNED;
++import static android.app.WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+ import static android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
+ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+ import static android.content.pm.ActivityInfo.RESIZE_MODE_UNRESIZEABLE;
+@@ -160,6 +163,7 @@ import android.app.PictureInPictureParams;
+ import android.app.PictureInPictureUiState;
+ import android.app.ProfilerInfo;
+ import android.app.WaitResult;
++import android.app.WindowConfiguration;
+ import android.app.admin.DevicePolicyCache;
+ import android.app.admin.DeviceStateCache;
+ import android.app.assist.ActivityId;
+@@ -241,6 +245,7 @@ import android.window.BackNavigationInfo;
+ import android.window.IWindowOrganizerController;
+ import android.window.SplashScreenView.SplashScreenViewParcelable;
+ import android.window.TaskSnapshot;
++import android.window.WindowContainerTransaction;
+ 
+ import com.android.internal.R;
+ import com.android.internal.annotations.GuardedBy;
+@@ -1272,6 +1277,23 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         mAmInternal.addCreatorToken(intent, callingPackage);
+         final int callingPid = Binder.getCallingPid();
+         final int callingUid = Binder.getCallingUid();
++
++        //  adb shell am start -n com.example.androidcar/.MainActivity --ei "position" 1
++        if (intent!=null && intent.getComponent()!=null){
++            String packageName = intent.getComponent().getPackageName();
++            if (packageName.equals("com.example.androidcar")){
++                Bundle extras = intent.getExtras();
++                if (extras !=null){
++                    int position = extras.getInt("position", -1);
++                    if (bOptions ==null) bOptions = new Bundle();
++                    if (position == 1){
++                        bOptions.putInt("android.activity.windowingMode",5);
++                        bOptions.putParcelable("android:activity.launchBounds",new Rect(0,0,400,696));
++                    }
++                }
++            }
++        }
++
+         final SafeActivityOptions opts = SafeActivityOptions.fromBundle(
+                 bOptions, callingPid, callingUid);
+ 
+@@ -1315,6 +1337,81 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+                 .execute();
+     }
+ 
++//    @Override
++//    public void toggleFreeformWindow(boolean enterFreeForm) {
++//        enforceTaskPermission("toggleFreeformWindow()");
++//        final long ident = Binder.clearCallingIdentity();
++//        try {
++//            synchronized (mGlobalLock) {
++//                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
++//                for (int i = 0; i < rootTaskInfos.size(); i++) {
++//                    if (i == 0){
++//                        Task task = mRootWindowContainer.anyTaskForId(rootTaskInfos.get(i).taskId);
++//                        final Transition transition = new Transition(TRANSIT_CHANGE, 0 /* flags */,
++//                                getTransitionController(), mWindowManager.mSyncEngine);
++//                        getTransitionController().startCollectOrQueue(transition,
++//                                (deferred) -> {
++//                                    if (deferred && !task.getWindowConfiguration().canResizeTask()) {
++//                                        Slog.w(TAG, "resizeTask not allowed on task=" + task);
++//                                        transition.abort();
++//                                        return;
++//                                    }
++//                                    getTransitionController().requestStartTransition(transition, task,
++//                                            null /* remoteTransition */, null /* displayChange */);
++//                                    transition.collect(task);
++//                                    if (enterFreeForm) {
++//                                        task.setWindowingMode(
++//                                                WINDOWING_MODE_FREEFORM);
++//                                    } else {
++//                                        task.setWindowingMode(
++//                                                WindowConfiguration.WINDOWING_MODE_FULLSCREEN);
++//                                        task.setBounds(null);
++//                                    }
++//                                    transition.setReady(task, true);
++//                                });
++//                    }
++//                }
++//            }
++//        } finally {
++//            Binder.restoreCallingIdentity(ident);
++//        }
++//    }
++
++    @Override
++    public void toggleFreeformWindow(boolean enterFreeForm) {
++        enforceTaskPermission("toggleFreeformWindow()");
++        final long ident = Binder.clearCallingIdentity();
++        try {
++            synchronized (mGlobalLock) {
++                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
++                for (int i = 0; i < rootTaskInfos.size(); i++) {
++                    if (i == 0){
++                        Log.e(TAG, "toggleFreeformWindow: enterFreeForm = " +enterFreeForm +" , "+ rootTaskInfos.get(i).toString());
++                        RootTaskInfo taskInfo = rootTaskInfos.get(i);
++                        WindowContainerTransaction wct = new WindowContainerTransaction();
++                        int type = 0;
++                        if (enterFreeForm){
++                            type = 1009;
++                            wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
++                            wct.setBounds(taskInfo.token, new Rect(0,76,400,696));
++                        }else {
++                            type = 1008;
++                            wct.setWindowingMode(taskInfo.token,WINDOWING_MODE_FULLSCREEN);
++                            wct.setBounds(taskInfo.token, null);
++                        }
++                        getWindowOrganizerController().startNewTransition(type,wct);
++                    }else {
++                        Log.e(TAG, "toggleFreeformWindow: other > " + rootTaskInfos.get(i).toString());
++                    }
++                }
++            }
++        } catch (Exception e) {
++            //throw new RuntimeException(e);
++        }finally {
++            Binder.restoreCallingIdentity(ident);
++        }
++    }
++
+     @Override
+     public int startActivityIntentSender(IApplicationThread caller, IIntentSender target,
+             IBinder allowlistToken, Intent fillInIntent, String resolvedType, IBinder resultTo,
+diff --git a/services/core/java/com/android/server/wm/Task.java b/services/core/java/com/android/server/wm/Task.java
+index 89634707995a..1c97aa36737a 100644
+--- a/services/core/java/com/android/server/wm/Task.java
++++ b/services/core/java/com/android/server/wm/Task.java
+@@ -2267,7 +2267,7 @@ class Task extends TaskFragment {
+         // Prevent to overlap caption with stable insets.
+         final int offsetTop = parentBounds.top - outBounds.top;
+         if (offsetTop > 0) {
+-            outBounds.offset(0, offsetTop);
++            //outBounds.offset(0, offsetTop);
+         }
+     }
+ 
+diff --git a/services/core/java/com/android/server/wm/Transition.java b/services/core/java/com/android/server/wm/Transition.java
+index 65001f436d3f..f7c22309dcc7 100644
+--- a/services/core/java/com/android/server/wm/Transition.java
++++ b/services/core/java/com/android/server/wm/Transition.java
+@@ -91,6 +91,7 @@ import android.graphics.Rect;
+ import android.hardware.HardwareBuffer;
+ import android.os.Binder;
+ import android.os.Bundle;
++import android.os.Debug;
+ import android.os.IBinder;
+ import android.os.IRemoteCallback;
+ import android.os.Looper;
+@@ -1992,7 +1993,7 @@ class Transition implements BLASTSyncEngine.TransactionReadyListener {
+                     mStatusBarTransitionDelay);
+             try {
+                 ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS,
+-                        "Calling onTransitionReady: %s", info);
++                        "Calling onTransitionReady: %s  %s", info,Debug.getCallers(10));
+                 mLogger.mSendTimeNs = SystemClock.elapsedRealtimeNanos();
+                 mLogger.mInfo = info;
+                 mController.getTransitionPlayer().onTransitionReady(
+@@ -4160,8 +4161,8 @@ class Transition implements BLASTSyncEngine.TransactionReadyListener {
+                 }
+             }
+ 
+-            ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS, "Screenshotting %s [%s]",
+-                    wc.toString(), bounds.toString());
++            ProtoLog.v(WmProtoLogGroups.WM_DEBUG_WINDOW_TRANSITIONS, "Screenshotting %s [%s] Callers = %s",
++                    wc.toString(), bounds.toString(), Debug.getCallers(10));
+ 
+             Rect cropBounds = new Rect(bounds);
+             cropBounds.offsetTo(0, 0);
+diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
+index d25987028199..2ccce620f5b8 100644
+--- a/services/core/java/com/android/server/wm/WindowManagerService.java
++++ b/services/core/java/com/android/server/wm/WindowManagerService.java
+@@ -242,6 +242,7 @@ import android.util.ArraySet;
+ import android.util.DisplayMetrics;
+ import android.util.EventLog;
+ import android.util.IntArray;
++import android.util.Log;
+ import android.util.MergedConfiguration;
+ import android.util.Pair;
+ import android.util.Slog;
+@@ -5692,6 +5693,7 @@ public class WindowManagerService extends IWindowManager.Stub
+ 
+             mAccessibilityController.onFocusChanged(lastTarget, newTarget);
+             ProtoLog.i(WM_DEBUG_FOCUS_LIGHT, "Focus changing: %s -> %s", lastTarget, newTarget);
++            Log.e(TAG, "reportFocusChanged:  >>>>>>>>>>>>   lastTarget = "+ lastTarget + "   newTarget = "+newTarget);
+         }
+ 
+         // Call WindowState focus change observers
+diff --git a/services/core/java/com/android/server/wm/WindowState.java b/services/core/java/com/android/server/wm/WindowState.java
+index 93876f5eeed4..28c74e096ea2 100644
+--- a/services/core/java/com/android/server/wm/WindowState.java
++++ b/services/core/java/com/android/server/wm/WindowState.java
+@@ -217,6 +217,7 @@ import android.provider.Settings;
+ import android.text.TextUtils;
+ import android.util.ArraySet;
+ import android.util.DisplayMetrics;
++import android.util.Log;
+ import android.util.MergedConfiguration;
+ import android.util.Slog;
+ import android.util.SparseArray;
+@@ -4297,6 +4298,7 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
+         // Force the show in the next prepareSurfaceLocked() call.
+         mWinAnimator.mLastAlpha = -1;
+         ProtoLog.v(WM_DEBUG_ANIM, "performShowLocked: mDrawState=HAS_DRAWN in %s", this);
++        Log.e(TAG, "performShowLocked: mDrawState=HAS_DRAWN " +this +" "+ Debug.getCallers(10));
+         mWinAnimator.mDrawState = HAS_DRAWN;
+         mWmService.scheduleAnimationLocked();
+ 
+diff --git a/services/core/java/com/android/server/wm/WindowStateAnimator.java b/services/core/java/com/android/server/wm/WindowStateAnimator.java
+index 0d434f51e082..770f7c502a30 100644
+--- a/services/core/java/com/android/server/wm/WindowStateAnimator.java
++++ b/services/core/java/com/android/server/wm/WindowStateAnimator.java
+@@ -56,6 +56,7 @@ import android.graphics.Rect;
+ import android.os.Debug;
+ import android.os.Trace;
+ import android.util.EventLog;
++import android.util.Log;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ import android.view.Surface.OutOfResourcesException;
+@@ -268,6 +269,7 @@ class WindowStateAnimator {
+         }
+         ProtoLog.i(WM_DEBUG_ANIM, "commitFinishDrawingLocked: mDrawState=READY_TO_SHOW %s",
+                 mSurfaceControl);
++        Log.e(TAG, "commitFinishDrawingLocked: mDrawState=READY_TO_SHOW " +mSurfaceControl + " , "+ Debug.getCallers(10));
+         mDrawState = READY_TO_SHOW;
+         boolean result = false;
+         final ActivityRecord activity = mWin.mActivityRecord;

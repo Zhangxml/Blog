@@ -1,0 +1,533 @@
+commit 7a6f74d03b36d5a2f9ac892fee55745d51399c2e
+Author: zhangpeng <p421123@163.com>
+Date:   Wed Nov 12 14:12:09 2025 +0800
+
+    多个taskview
+    
+    Change-Id: I0d4c38bc11655cd42a096cdeef21b4827263ccc7
+
+diff --git a/app/AndroidManifest.xml b/app/AndroidManifest.xml
+index 1ef55297..ff7c0ec3 100644
+--- a/app/AndroidManifest.xml
++++ b/app/AndroidManifest.xml
+@@ -18,6 +18,7 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+           package="com.android.car.carlauncher">
+ 
++    <uses-permission android:name="android.car.permission.REGISTER_CAR_SYSTEM_UI_PROXY"/>
+     <!-- System permission to access the CarProjectionManager for projection status-->
+     <uses-permission android:name="android.car.permission.ACCESS_CAR_PROJECTION_STATUS"/>
+     <!-- Permission to assign Activity to TDA -->
+diff --git a/app/res/layout/car_launcher_new.xml b/app/res/layout/car_launcher_new.xml
+new file mode 100644
+index 00000000..462b2e1a
+--- /dev/null
++++ b/app/res/layout/car_launcher_new.xml
+@@ -0,0 +1,77 @@
++<?xml version="1.0" encoding="utf-8" ?>
++<!--
++  ~ Copyright (C) 2020 The Android Open Source Project
++  ~
++  ~ Licensed under the Apache License, Version 2.0 (the "License");
++  ~ you may not use this file except in compliance with the License.
++  ~ You may obtain a copy of the License at
++  ~
++  ~      http://www.apache.org/licenses/LICENSE-2.0
++  ~
++  ~ Unless required by applicable law or agreed to in writing, software
++  ~ distributed under the License is distributed on an "AS IS" BASIS,
++  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++  ~ See the License for the specific language governing permissions and
++  ~ limitations under the License.
++  -->
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:id="@+id/root"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:layoutDirection="ltr"
++    android:orientation="horizontal"
++    android:background="@android:color/black"
++    tools:context=".CarLauncher">
++
++    <com.android.car.ui.FocusParkingView
++        android:visibility="gone"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"/>
++
++    <com.android.car.ui.FocusArea
++        android:visibility="gone"
++        android:id="@+id/top_card"
++        android:layout_width="0dp"
++        android:layout_height="0dp"
++        android:layout_marginRight="@dimen/main_screen_widget_margin"
++        android:layout_marginBottom="@dimen/main_screen_widget_margin"
++        android:layoutDirection="locale"/>
++
++    <com.android.car.ui.FocusArea
++        android:visibility="gone"
++        android:id="@+id/bottom_card"
++        android:layout_width="0dp"
++        android:layout_height="0dp"
++        android:layout_marginBottom="@dimen/main_screen_widget_margin"
++        android:layoutDirection="locale"/>
++
++    <LinearLayout
++        android:id="@+id/container"
++        android:orientation="horizontal"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent">
++
++        <androidx.cardview.widget.CardView
++            android:id="@+id/maps_card1"
++            style="@style/CardViewStyle"
++            android:layout_width="0dp"
++            android:layout_weight="1"
++            android:layout_height="match_parent" />
++
++        <View
++            android:layout_width="5dp"
++            android:layout_height="match_parent"/>
++
++        <androidx.cardview.widget.CardView
++            android:id="@+id/maps_card"
++            style="@style/CardViewStyle"
++            android:layout_width="976dp"
++            android:layout_height="match_parent"
++            android:layoutDirection="locale" />
++
++    </LinearLayout>
++
++</LinearLayout>
+\ No newline at end of file
+diff --git a/app/res/values/styles.xml b/app/res/values/styles.xml
+index 59a27bc1..7e5f657e 100644
+--- a/app/res/values/styles.xml
++++ b/app/res/values/styles.xml
+@@ -16,7 +16,7 @@
+ -->
+ <resources>
+     <style name="CardViewStyle">
+-        <item name="cardCornerRadius">?launcherCardCornerRadius</item>
++        <item name="cardCornerRadius">10dp</item>
+         <item name="cardElevation">0dp</item>
+     </style>
+ 
+diff --git a/app/src/com/android/car/carlauncher/CarLauncher.java b/app/src/com/android/car/carlauncher/CarLauncher.java
+index 37ddb03a..ec9c2f39 100644
+--- a/app/src/com/android/car/carlauncher/CarLauncher.java
++++ b/app/src/com/android/car/carlauncher/CarLauncher.java
+@@ -25,13 +25,17 @@ import static com.android.car.carlauncher.CarLauncherViewModel.CarLauncherViewMo
+ 
+ import android.app.ActivityManager;
+ import android.app.ActivityOptions;
++import android.app.ActivityTaskManager;
+ import android.app.TaskStackListener;
+ import android.car.Car;
++import android.car.app.RemoteCarTaskView;
++import android.content.ComponentName;
+ import android.content.Intent;
+ import android.content.res.Configuration;
+ import android.database.ContentObserver;
+ import android.os.Bundle;
+ import android.os.Handler;
++import android.os.RemoteException;
+ import android.os.UserManager;
+ import android.provider.Settings;
+ import android.util.Log;
+@@ -39,6 +43,7 @@ import android.view.Display;
+ import android.view.View;
+ import android.view.ViewGroup;
+ import android.view.WindowManager;
++import android.widget.FrameLayout;
+ 
+ import androidx.annotation.NonNull;
+ import androidx.collection.ArraySet;
+@@ -75,7 +80,7 @@ import java.util.Set;
+  */
+ public class CarLauncher extends FragmentActivity {
+     public static final String TAG = "CarLauncher";
+-    public static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
++    public static final boolean DEBUG = /*Log.isLoggable(TAG, Log.DEBUG)*/true;
+ 
+     private ActivityManager mActivityManager;
+     private Car mCar;
+@@ -157,7 +162,7 @@ public class CarLauncher extends FragmentActivity {
+         if (isInMultiWindowMode() || isInPictureInPictureMode()) {
+             setContentView(R.layout.car_launcher_multiwindow);
+         } else {
+-            setContentView(R.layout.car_launcher);
++            setContentView(R.layout.car_launcher_new);
+             // Passenger displays do not require TaskView Embedding
+             if (!isPassengerDisplay) {
+                 mUseSmallCanvasOptimizedMap =
+@@ -178,6 +183,15 @@ public class CarLauncher extends FragmentActivity {
+                     if (mMapsCard != null) {
+                         setupRemoteCarTaskView(mMapsCard);
+                     }
++                    //  新增  start
++                    new Handler().postDelayed(()->{
++                        ViewGroup mMapsCard1 = findViewById(R.id.maps_card1);
++                        if (mMapsCard1 != null) {
++                            setupRemoteCarTaskView2(mMapsCard1);
++                        }
++                    },500);
++                    //  新增  end
++
+                 }
+             } else {
+                 // For Passenger display show the AppGridFragment in place of the Maps view.
+@@ -223,6 +237,35 @@ public class CarLauncher extends FragmentActivity {
+         });
+     }
+ 
++    //  新增  start
++    private void setupRemoteCarTaskView2(ViewGroup parent) {
++        CarLauncherViewModel2 mCarLauncherViewModel2 = new ViewModelProvider(this,
++                new CarLauncherViewModel2.CarLauncherViewModelFactory(this, getMapsIntent2()))
++                .get(CarLauncherViewModel2.class);
++
++        getLifecycle().addObserver(mCarLauncherViewModel2);
++        addOnNewIntentListener(mCarLauncherViewModel2.getNewIntentListener());
++
++        setUpRemoteCarTaskViewObserver2(parent,mCarLauncherViewModel2);
++    }
++
++    private void setUpRemoteCarTaskViewObserver2(ViewGroup parent2,CarLauncherViewModel2 mCarLauncherViewModel2) {
++        mCarLauncherViewModel2.getRemoteCarTaskView().observe(this, taskView -> {
++            if (taskView == null || taskView.getParent() == parent2) {
++                // Discard if the parent is still the same because it doesn't signify a config
++                // change.
++                return;
++            }
++            if (taskView.getParent() != null) {
++                // Discard the previous parent as its invalid now.
++                ((ViewGroup) taskView.getParent()).removeView(taskView);
++            }
++            parent2.removeAllViews(); // Just a defense against a dirty parent.
++            parent2.addView(taskView);
++        });
++    }
++    //  新增  end
++
+     @Override
+     protected void onResume() {
+         super.onResume();
+@@ -299,11 +342,11 @@ public class CarLauncher extends FragmentActivity {
+                 }
+             }
+         }
+-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+-        for (HomeCardModule cardModule : mHomeCardModules) {
+-            transaction.replace(cardModule.getCardResId(), cardModule.getCardView().getFragment());
+-        }
+-        transaction.commitNow();
++//        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
++//        for (HomeCardModule cardModule : mHomeCardModules) {
++//            transaction.replace(cardModule.getCardResId(), cardModule.getCardView().getFragment());
++//        }
++//        transaction.commitNow();
+     }
+ 
+     /** Logs that the Activity is ready. Used for startup time diagnostics. */
+@@ -335,12 +378,21 @@ public class CarLauncher extends FragmentActivity {
+         Intent mapIntent = mUseSmallCanvasOptimizedMap
+                 ? CarLauncherUtils.getSmallCanvasOptimizedMapIntent(this)
+                 : CarLauncherUtils.getMapsIntent(this);
+-
+         // Don't want to show this Activity in Recents.
+         mapIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+         return mapIntent;
+     }
+ 
++    //  新增  start
++    protected Intent getMapsIntent2() {
++        Intent defaultIntent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
++        defaultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++        defaultIntent.setComponent(new ComponentName("com.android.calendar","com.android.calendar.AllInOneActivity"));
++        defaultIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
++        return defaultIntent;
++    }
++    //  新增  end
++
+     private void setupContentObserversForTos() {
+         if (AppLauncherUtils.tosStatusUninitialized(/* context = */ this)
+                 || !AppLauncherUtils.tosAccepted(/* context = */ this)) {
+diff --git a/app/src/com/android/car/carlauncher/CarLauncherViewModel.java b/app/src/com/android/car/carlauncher/CarLauncherViewModel.java
+index 2acbfa89..ec70fbd3 100644
+--- a/app/src/com/android/car/carlauncher/CarLauncherViewModel.java
++++ b/app/src/com/android/car/carlauncher/CarLauncherViewModel.java
+@@ -225,7 +225,7 @@ public final class CarLauncherViewModel extends ViewModel implements DefaultLife
+ 
+         @Override
+         public void onConnected(@NonNull CarTaskViewController carTaskViewController) {
+-            carTaskViewController.createControlledRemoteCarTaskView(
++            carTaskViewController.createControlledRemoteCarTaskView(  // 创建
+                     new ControlledRemoteCarTaskViewConfig.Builder()
+                             .setActivityIntent(mMapsIntent)
+                             .setShouldAutoRestartOnTaskRemoval(sAutoRestartOnCrash)
+diff --git a/app/src/com/android/car/carlauncher/CarLauncherViewModel2.java b/app/src/com/android/car/carlauncher/CarLauncherViewModel2.java
+new file mode 100644
+index 00000000..57eb4edf
+--- /dev/null
++++ b/app/src/com/android/car/carlauncher/CarLauncherViewModel2.java
+@@ -0,0 +1,257 @@
++/*
++ * Copyright (C) 2023 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.car.carlauncher;
++
++import static android.app.ActivityTaskManager.INVALID_TASK_ID;
++import static android.view.WindowManager.LayoutParams.TYPE_APPLICATION_STARTING;
++import static java.util.Objects.requireNonNull;
++
++import android.annotation.NonNull;
++import android.annotation.SuppressLint;
++import android.annotation.UiContext;
++import android.app.ActivityManager;
++import android.car.Car;
++import android.car.app.CarActivityManager;
++import android.car.app.CarTaskViewController;
++import android.car.app.CarTaskViewControllerCallback;
++import android.car.app.CarTaskViewControllerHostLifecycle;
++import android.car.app.ControlledRemoteCarTaskView;
++import android.car.app.ControlledRemoteCarTaskViewCallback;
++import android.car.app.ControlledRemoteCarTaskViewConfig;
++import android.car.app.RemoteCarTaskView;
++import android.content.Context;
++import android.content.Intent;
++import android.graphics.Color;
++import android.os.Build;
++import android.util.Log;
++
++import androidx.core.util.Consumer;
++import androidx.lifecycle.DefaultLifecycleObserver;
++import androidx.lifecycle.LifecycleOwner;
++import androidx.lifecycle.LiveData;
++import androidx.lifecycle.MutableLiveData;
++import androidx.lifecycle.ViewModel;
++import androidx.lifecycle.ViewModelProvider;
++
++import com.google.common.annotations.VisibleForTesting;
++
++/**
++ * A car launcher view model to manage the lifecycle of {@link RemoteCarTaskView}.
++ */
++public final class CarLauncherViewModel2 extends ViewModel implements DefaultLifecycleObserver {
++    private static final String TAG = CarLauncher.TAG;
++    private static final boolean DEBUG = CarLauncher.DEBUG;
++    private static final boolean sAutoRestartOnCrash = Build.IS_USER;
++
++    private final CarActivityManager mCarActivityManager;
++    private final Car mCar;
++    @SuppressLint("StaticFieldLeak") // We're not leaking this context as it is the window context.
++    private final Context mWindowContext;
++
++    // Do not make this final because the maps intent can be changed based on the state of TOS.
++    private Intent mMapsIntent;
++    private CarTaskViewControllerHostLifecycle mHostLifecycle;
++    private MutableLiveData<RemoteCarTaskView> mRemoteCarTaskView;
++
++    public CarLauncherViewModel2(@UiContext Context context, Intent mapsIntent) {
++        mWindowContext = context.createWindowContext(TYPE_APPLICATION_STARTING, /* options */ null);
++        mCar = Car.createCar(mWindowContext);
++        mCarActivityManager = mCar.getCarManager(CarActivityManager.class);
++        initializeRemoteCarTaskView(mapsIntent);
++    }
++
++    /**
++     * Initialize the remote car task view with the maps intent.
++     */
++    public void initializeRemoteCarTaskView(@NonNull Intent mapsIntent) {
++        if (DEBUG) {
++            Log.d(TAG, "Maps intent in the task view = " + mapsIntent.getComponent());
++        }
++        mMapsIntent = mapsIntent;
++        if (mRemoteCarTaskView != null && mRemoteCarTaskView.getValue() != null) {
++            // Release the remote car task view instance if it exists since otherwise there could
++            // be a memory leak
++            mRemoteCarTaskView.getValue().release();
++        }
++        mRemoteCarTaskView = new MutableLiveData<>(/* value= */ null);
++        mHostLifecycle = new CarTaskViewControllerHostLifecycle();
++        ControlledRemoteCarTaskViewCallback controlledRemoteCarTaskViewCallback =
++                new ControlledRemoteCarTaskViewCallbackImpl(mRemoteCarTaskView);
++
++        CarTaskViewControllerCallback carTaskViewControllerCallback =
++                new CarTaskViewControllerCallbackImpl(controlledRemoteCarTaskViewCallback);
++
++        mCarActivityManager.getCarTaskViewController(mWindowContext, mHostLifecycle,
++                mWindowContext.getMainExecutor(), carTaskViewControllerCallback);
++    }
++
++    LiveData<RemoteCarTaskView> getRemoteCarTaskView() {
++        return mRemoteCarTaskView;
++    }
++
++    @VisibleForTesting
++    Intent getMapsIntent() {
++        return mMapsIntent;
++    }
++
++    /**
++     * Returns remote car task view task Id.
++     */
++    public int getRemoteCarTaskViewTaskId() {
++        if (mRemoteCarTaskView != null && mRemoteCarTaskView.getValue() != null
++                && mRemoteCarTaskView.getValue().getTaskInfo() != null) {
++            return mRemoteCarTaskView.getValue().getTaskInfo().taskId;
++        }
++        return INVALID_TASK_ID;
++    }
++
++    /**
++     * Shows remote car task view when activity is resumed.
++     */
++    @Override
++    public void onResume(@NonNull LifecycleOwner owner) {
++        DefaultLifecycleObserver.super.onResume(owner);
++        // Do not trigger 'hostAppeared()' in onResume.
++        // If the host Activity was hidden by an Activity, the Activity is moved to the other
++        // display, what the system expects would be the new moved Activity becomes the top one.
++        // But, at the time, the host Activity became visible and 'onResume()' is triggered.
++        // If 'hostAppeared()' is called in onResume, which moves the embeddedTask to the top and
++        // breaks the contract (the newly moved Activity becomes top).
++        // The contract is maintained by android.server.wm.multidisplay.MultiDisplayClientTests.
++        // BTW, if we don't invoke 'hostAppeared()', which makes the embedded task invisible if
++        // the host Activity gets the new Intent, so we'd call 'hostAppeared()' in onNewIntent.
++    }
++
++    @Override
++    public void onStop(@NonNull LifecycleOwner owner) {
++        DefaultLifecycleObserver.super.onStop(owner);
++        mHostLifecycle.hostDisappeared();
++    }
++
++    @Override
++    protected void onCleared() {
++        if (mRemoteCarTaskView != null) {
++            mRemoteCarTaskView.setValue(null);
++        }
++        if (mCar != null) {
++            mCar.disconnect();
++        }
++        mHostLifecycle.hostDestroyed();
++        super.onCleared();
++    }
++
++    public Consumer<Intent> getNewIntentListener() {
++        return mNewIntentConsumer;
++    }
++
++    private final Consumer<Intent> mNewIntentConsumer = new Consumer<Intent>() {
++        @Override
++        public void accept(Intent intent) {
++            mHostLifecycle.hostAppeared();
++        }
++    };
++
++    private static final class ControlledRemoteCarTaskViewCallbackImpl implements
++            ControlledRemoteCarTaskViewCallback {
++        private final MutableLiveData<RemoteCarTaskView> mRemoteCarTaskView;
++
++        private ControlledRemoteCarTaskViewCallbackImpl(
++                MutableLiveData<RemoteCarTaskView> remoteCarTaskView) {
++            mRemoteCarTaskView = remoteCarTaskView;
++        }
++
++        @Override
++        public void onTaskViewCreated(@NonNull ControlledRemoteCarTaskView taskView) {
++            if (DEBUG) {
++                Log.d(TAG, "MapsTaskView: onTaskViewCreated");
++            }
++            mRemoteCarTaskView.setValue(taskView);
++        }
++
++        @Override
++        public void onTaskViewInitialized() {
++            if (DEBUG) {
++                Log.d(TAG, "MapsTaskView: onTaskViewInitialized");
++            }
++        }
++
++        @Override
++        public void onTaskAppeared(@NonNull ActivityManager.RunningTaskInfo taskInfo) {
++            if (DEBUG) {
++                Log.d(TAG, "MapsTaskView: onTaskAppeared: taskId=" + taskInfo.taskId);
++            }
++            if (!sAutoRestartOnCrash) {
++                mRemoteCarTaskView.getValue().setBackgroundColor(Color.TRANSPARENT);
++            }
++        }
++
++        @Override
++        public void onTaskVanished(@NonNull ActivityManager.RunningTaskInfo taskInfo) {
++            if (DEBUG) {
++                Log.d(TAG, "MapsTaskView: onTaskVanished: taskId=" + taskInfo.taskId);
++            }
++            if (!sAutoRestartOnCrash) {
++                // RemoteCarTaskView color is set to red to indicate
++                // that nothing is wrong with the task view but maps
++                // in the task view has crashed. More details in
++                // b/247156851.
++                mRemoteCarTaskView.getValue().setBackgroundColor(Color.RED);
++            }
++        }
++    }
++
++    private final class CarTaskViewControllerCallbackImpl implements CarTaskViewControllerCallback {
++        private final ControlledRemoteCarTaskViewCallback mControlledRemoteCarTaskViewCallback;
++
++        private CarTaskViewControllerCallbackImpl(
++                ControlledRemoteCarTaskViewCallback controlledRemoteCarTaskViewCallback) {
++            mControlledRemoteCarTaskViewCallback = controlledRemoteCarTaskViewCallback;
++        }
++
++        @Override
++        public void onConnected(@NonNull CarTaskViewController carTaskViewController) {
++            carTaskViewController.createControlledRemoteCarTaskView(  // 创建
++                    new ControlledRemoteCarTaskViewConfig.Builder()
++                            .setActivityIntent(mMapsIntent)
++                            .setShouldAutoRestartOnTaskRemoval(sAutoRestartOnCrash)
++                            .build(),
++                    mWindowContext.getMainExecutor(),
++                    mControlledRemoteCarTaskViewCallback);
++        }
++
++        @Override
++        public void onDisconnected(@NonNull CarTaskViewController carTaskViewController) {
++            mRemoteCarTaskView.setValue(null);
++        }
++    }
++
++    static final class CarLauncherViewModelFactory implements ViewModelProvider.Factory {
++        private final Context mContext;
++        private final Intent mMapsIntent;
++
++        CarLauncherViewModelFactory(@UiContext Context context, @NonNull Intent mapsIntent) {
++            mMapsIntent = requireNonNull(mapsIntent);
++            mContext = requireNonNull(context);
++        }
++
++        @NonNull
++        @Override
++        public <T extends ViewModel> T create(Class<T> modelClass) {
++            return modelClass.cast(new CarLauncherViewModel2(mContext, mMapsIntent));
++        }
++    }
++}

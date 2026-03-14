@@ -1,0 +1,95 @@
+diff --git a/services/inputflinger/dispatcher/DebugConfig.h b/services/inputflinger/dispatcher/DebugConfig.h
+index fe33d94504..f998679ae7 100644
+--- a/services/inputflinger/dispatcher/DebugConfig.h
++++ b/services/inputflinger/dispatcher/DebugConfig.h
+@@ -59,14 +59,14 @@ const bool DEBUG_DISPATCH_CYCLE =
+  * restart)
+  */
+ const bool DEBUG_CHANNEL_CREATION =
+-        android::base::ShouldLog(android::base::LogSeverity::DEBUG, LOG_TAG "ChannelCreation");
++        android::base::ShouldLog(android::base::LogSeverity::INFO, LOG_TAG "ChannelCreation");
+ 
+ /**
+  * Log debug messages about input event injection.
+  * Enable this via "adb shell setprop log.tag.InputDispatcherInjection DEBUG" (requires restart)
+  */
+ const bool DEBUG_INJECTION =
+-        android::base::ShouldLog(android::base::LogSeverity::DEBUG, LOG_TAG "Injection");
++        android::base::ShouldLog(android::base::LogSeverity::INFO, LOG_TAG "Injection");
+ 
+ /**
+  * Generally, we always log whenever events are dropped. However, to reduce logspam, some messages
+@@ -83,14 +83,14 @@ const bool DEBUG_DROPPED_EVENTS_VERBOSE =
+  * Enable this via "adb shell setprop log.tag.InputDispatcherFocus DEBUG" (requires restart)
+  */
+ const bool DEBUG_FOCUS =
+-        android::base::ShouldLog(android::base::LogSeverity::DEBUG, LOG_TAG "Focus");
++        android::base::ShouldLog(android::base::LogSeverity::INFO, LOG_TAG "Focus");
+ 
+ /**
+  * Log debug messages about touch mode event
+  * Enable this via "adb shell setprop log.tag.InputDispatcherTouchMode DEBUG" (requires restart)
+  */
+ const bool DEBUG_TOUCH_MODE =
+-        android::base::ShouldLog(android::base::LogSeverity::DEBUG, LOG_TAG "TouchMode");
++        android::base::ShouldLog(android::base::LogSeverity::INFO, LOG_TAG "TouchMode");
+ 
+ /**
+  * Log debug messages about touch occlusion
+diff --git a/services/inputflinger/dispatcher/InputDispatcher.cpp b/services/inputflinger/dispatcher/InputDispatcher.cpp
+index 2908c61182..1d6fbf9d85 100644
+--- a/services/inputflinger/dispatcher/InputDispatcher.cpp
++++ b/services/inputflinger/dispatcher/InputDispatcher.cpp
+@@ -17,8 +17,10 @@
+ #define LOG_TAG "InputDispatcher"
+ #define ATRACE_TAG ATRACE_TAG_INPUT
+ 
+-#define LOG_NDEBUG 1
++#define LOG_NDEBUG 0  // 0是放开日志
+ 
++#include <execinfo.h>
++#include <stdio.h>
+ #include <android-base/chrono_utils.h>
+ #include <android-base/logging.h>
+ #include <android-base/properties.h>
+@@ -59,6 +61,8 @@
+ #include "trace/InputTracingPerfettoBackend.h"
+ #include "trace/ThreadedBackend.h"
+ 
++#include <utils/CallStack.h>
++
+ #define INDENT "  "
+ #define INDENT2 "    "
+ #define INDENT3 "      "
+@@ -5456,6 +5460,19 @@ void InputDispatcher::updateWindowHandlesForDisplayLocked(
+     mWindowInfos.setWindowHandlesForDisplay(displayId, std::move(newHandles));
+ }
+ 
++/*void print_backtrace() {
++    const int max_frames = 50;
++    void* buffer[max_frames];
++    int nptrs = backtrace(buffer, max_frames);
++    char** strings = backtrace_symbols(buffer, nptrs);
++
++    ALOGD("Backtrace (%d frames):", nptrs);
++    for (int i = 0; i < nptrs; i++) {
++        ALOGD("  %s", strings[i]);
++    }
++    free(strings);
++}*/
++
+ /**
+  * Called from InputManagerService, update window handle list by displayId that can receive input.
+  * A window handle contains information about InputChannel, Touch Region, Types, Focused,...
+@@ -5473,8 +5490,10 @@ void InputDispatcher::setInputWindowsLocked(
+         }
+         LOG(INFO) << "setInputWindows displayId=" << displayId << " " << windowList;
+     }
+-    ScopedSyntheticEventTracer traceContext(mTracer);
++    // input  添加堆栈
++    //print_backtrace();
+ 
++    ScopedSyntheticEventTracer traceContext(mTracer);
+     // Check preconditions for new input windows
+     for (const sp<WindowInfoHandle>& window : windowInfoHandles) {
+         const WindowInfo& info = *window->getInfo();

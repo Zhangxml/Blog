@@ -1,0 +1,406 @@
+commit 4159c175bd7842ebd2b78ec2a2f7591502a5cba1
+Author: zhangpeng <p421123@163.com>
+Date:   Thu Feb 5 10:58:37 2026 +0800
+
+    260205
+    
+    Change-Id: I2d954d8ea3317ed06de0ec0bc86867a179328e70
+
+diff --git a/core/java/android/app/ActivityOptions.java b/core/java/android/app/ActivityOptions.java
+index cc3745675bc9..adb02f31c852 100644
+--- a/core/java/android/app/ActivityOptions.java
++++ b/core/java/android/app/ActivityOptions.java
+@@ -2803,7 +2803,7 @@ public class ActivityOptions extends ComponentOptions {
+         return "ActivityOptions(" + hashCode() + "), mPackageName=" + mPackageName
+                 + ", mAnimationType=" + mAnimationType + ", mStartX=" + mStartX + ", mStartY="
+                 + mStartY + ", mWidth=" + mWidth + ", mHeight=" + mHeight + ", mLaunchDisplayId="
+-                + mLaunchDisplayId;
++                + mLaunchDisplayId + "  mLaunchWindowingMode = "+mLaunchWindowingMode + "  mLaunchBounds = "+mLaunchBounds;
+     }
+ 
+     /**
+diff --git a/core/java/android/app/IActivityTaskManager.aidl b/core/java/android/app/IActivityTaskManager.aidl
+index 2952790cbb9c..fa40c3d9f8ac 100644
+--- a/core/java/android/app/IActivityTaskManager.aidl
++++ b/core/java/android/app/IActivityTaskManager.aidl
+@@ -409,9 +409,9 @@ interface IActivityTaskManager {
+      */
+     void unregisterScreenCaptureObserver(IBinder activityToken, IScreenCaptureObserver observer);
+ 
+-    void toggleFreeformWindow(boolean enterFreeForm);
++    void toggleFreeformWindow(boolean enterFreeForm,int x2);
+ 
+     void backActivity(String pkg,String mainClass);
+ 
+-//    void notifyCustomChanged(String from,String to,String arg);
++    void notifyCustomChanged(String arg);
+ }
+diff --git a/core/java/android/app/ITaskStackListener.aidl b/core/java/android/app/ITaskStackListener.aidl
+index 5bcd326cef42..a1b6a78c39ea 100644
+--- a/core/java/android/app/ITaskStackListener.aidl
++++ b/core/java/android/app/ITaskStackListener.aidl
+@@ -226,6 +226,6 @@ oneway interface ITaskStackListener {
+      */
+     void onLockTaskModeChanged(int mode);
+ 
+-//    void onCustomChanged(String arg);
++    void onCustomChanged(String arg);
+ 
+ }
+diff --git a/core/java/android/app/TaskStackListener.java b/core/java/android/app/TaskStackListener.java
+index 69d755f8d86c..ced3a36c8963 100644
+--- a/core/java/android/app/TaskStackListener.java
++++ b/core/java/android/app/TaskStackListener.java
+@@ -221,7 +221,7 @@ public abstract class TaskStackListener extends ITaskStackListener.Stub {
+     public void onLockTaskModeChanged(int mode) {
+     }
+ 
+-//    @Override
+-//    public void onCustomChanged(String arg) {
+-//    }
++    @Override
++    public void onCustomChanged(String arg) {
++    }
+ }
+diff --git a/services/core/java/com/android/server/am/ActivityManagerShellCommand.java b/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
+index d40271de4acc..84d59ef6a361 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
++++ b/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
+@@ -236,10 +236,13 @@ final class ActivityManagerShellCommand extends ShellCommand {
+ 
+     public void toggleFreeformWindow(PrintWriter pw) throws RemoteException{
+         String enter = getNextArgRequired();
++        String xStr = getNextArgRequired();
++        int x2 = Integer.parseInt(xStr);
++
+         if ("true".equals(enter)){
+-            mTaskInterface.toggleFreeformWindow(true);
++            mTaskInterface.toggleFreeformWindow(true,x2);
+         }else if ("false".equals(enter)){
+-            mTaskInterface.toggleFreeformWindow(false);
++            mTaskInterface.toggleFreeformWindow(false,x2);
+         }
+     }
+ 
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index df2b8a48739e..a954291c6f29 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -1317,6 +1317,29 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+             }
+         }
+ 
++        //  adb shell am start -n com.android.myapplication/.MainActivity --ei "position" 1
++        // adb shell input keyevent 4  返回
++        if (intent!=null && intent.getComponent()!=null){
++            String packageName = intent.getComponent().getPackageName();
++            if (packageName.equals("com.android.myapplication")){
++
++                Bundle extras = intent.getExtras();
++                if (extras !=null){
++                    int position = extras.getInt("position", 0);
++                    if (bOptions ==null) bOptions = new Bundle();
++
++                    if (position == 1){
++                        bOptions.putInt("android.activity.windowingMode",5);
++                        bOptions.putParcelable("android:activity.launchBounds",new Rect(0,0,400,696));
++                    }
++                    if (position == 2){
++                        bOptions.putInt("android.activity.windowingMode",5);
++                        bOptions.putParcelable("android:activity.launchBounds",new Rect(400,0,1408,696));
++                    }
++                }
++            }
++        }
++
+         final SafeActivityOptions opts = SafeActivityOptions.fromBundle(
+                 bOptions, callingPid, callingUid);
+ 
+@@ -1360,6 +1383,53 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+                 .execute();
+     }
+ 
++    @Override
++    public void toggleFreeformWindow(boolean enterFreeForm,int x2) {
++        enforceTaskPermission("toggleFreeformWindow()");
++        final long ident = Binder.clearCallingIdentity();
++        try {
++            synchronized (mGlobalLock) {
++                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
++                for (int i = 0; i < rootTaskInfos.size(); i++) {
++//                    if (i == 0){
++                        Task task = mRootWindowContainer.anyTaskForId(rootTaskInfos.get(i).taskId);
++                        if (task.getRootTaskId() == x2){
++                        final Transition transition = new Transition(TRANSIT_CHANGE, 0 /* flags */,
++                                getTransitionController(), mWindowManager.mSyncEngine);
++                        getTransitionController().startCollectOrQueue(transition,
++                                (deferred) -> {
++                                    if (deferred && !task.getWindowConfiguration().canResizeTask()) {
++                                        Slog.w(TAG, "resizeTask not allowed on task=" + task);
++                                        transition.abort();
++                                        return;
++                                    }
++                                    getTransitionController().requestStartTransition(transition, task,
++                                            null /* remoteTransition */, null /* displayChange */);
++                                    transition.collect(task);
++                                    if (enterFreeForm) {
++                                        task.setWindowingMode(
++                                                WINDOWING_MODE_FREEFORM);
++//                                        if (x2 == 2){
++                                            task.setBounds(new Rect(0,76,400,696));
++//                                        }else if (x2 == 3){
++//                                            task.setBounds(new Rect(400,76,1408,696));
++//                                        }
++
++                                    } else {
++                                        task.setWindowingMode(
++                                                WindowConfiguration.WINDOWING_MODE_FULLSCREEN);
++                                        task.setBounds(null);
++                                    }
++                                    transition.setReady(task, true);
++                                });
++                    }
++                }
++            }
++        } finally {
++            Binder.restoreCallingIdentity(ident);
++        }
++    }
++
+ //    @Override
+ //    public void toggleFreeformWindow(boolean enterFreeForm) {
+ //        enforceTaskPermission("toggleFreeformWindow()");
+@@ -1369,103 +1439,71 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+ //                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
+ //                for (int i = 0; i < rootTaskInfos.size(); i++) {
+ //                    if (i == 0){
+-//                        Task task = mRootWindowContainer.anyTaskForId(rootTaskInfos.get(i).taskId);
+-//                        final Transition transition = new Transition(TRANSIT_CHANGE, 0 /* flags */,
+-//                                getTransitionController(), mWindowManager.mSyncEngine);
+-//                        getTransitionController().startCollectOrQueue(transition,
+-//                                (deferred) -> {
+-//                                    if (deferred && !task.getWindowConfiguration().canResizeTask()) {
+-//                                        Slog.w(TAG, "resizeTask not allowed on task=" + task);
+-//                                        transition.abort();
+-//                                        return;
+-//                                    }
+-//                                    getTransitionController().requestStartTransition(transition, task,
+-//                                            null /* remoteTransition */, null /* displayChange */);
+-//                                    transition.collect(task);
+-//                                    if (enterFreeForm) {
+-//                                        task.setWindowingMode(
+-//                                                WINDOWING_MODE_FREEFORM);
+-//                                    } else {
+-//                                        task.setWindowingMode(
+-//                                                WindowConfiguration.WINDOWING_MODE_FULLSCREEN);
+-//                                        task.setBounds(null);
+-//                                    }
+-//                                    transition.setReady(task, true);
+-//                                });
++//                        Log.e(TAG, "toggleFreeformWindow: enterFreeForm = " +enterFreeForm +" , "+ rootTaskInfos.get(i).toString());
++//                        RootTaskInfo taskInfo = rootTaskInfos.get(i);
++//                        WindowContainerTransaction wct = new WindowContainerTransaction();
++//                        int type = 0;
++//                        if (enterFreeForm){
++//                            type = 1009;
++//                            wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
++//                            wct.setBounds(taskInfo.token, new Rect(0,76,400,696));
++//                        }else {
++//                            type = 1008;
++//                            wct.setWindowingMode(taskInfo.token,WINDOWING_MODE_FULLSCREEN);
++//                            wct.setBounds(taskInfo.token, null);
++//                        }
++//                        getWindowOrganizerController().startNewTransition(type,wct);
++//                    }else {
++//                        Log.e(TAG, "toggleFreeformWindow: other > " + rootTaskInfos.get(i).toString());
+ //                    }
+ //                }
+ //            }
+-//        } finally {
++//        } catch (Exception e) {
++//            //throw new RuntimeException(e);
++//        }finally {
+ //            Binder.restoreCallingIdentity(ident);
+ //        }
+ //    }
+ 
+     @Override
+-    public void toggleFreeformWindow(boolean enterFreeForm) {
+-        enforceTaskPermission("toggleFreeformWindow()");
++    public void backActivity(String pkg,String mainClass){
+         final long ident = Binder.clearCallingIdentity();
+         try {
+-            synchronized (mGlobalLock) {
+-                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
+-                for (int i = 0; i < rootTaskInfos.size(); i++) {
+-                    if (i == 0){
+-                        Log.e(TAG, "toggleFreeformWindow: enterFreeForm = " +enterFreeForm +" , "+ rootTaskInfos.get(i).toString());
+-                        RootTaskInfo taskInfo = rootTaskInfos.get(i);
+-                        WindowContainerTransaction wct = new WindowContainerTransaction();
+-                        int type = 0;
+-                        if (enterFreeForm){
+-                            type = 1009;
+-                            wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
+-                            wct.setBounds(taskInfo.token, new Rect(0,76,400,696));
+-                        }else {
+-                            type = 1008;
+-                            wct.setWindowingMode(taskInfo.token,WINDOWING_MODE_FULLSCREEN);
+-                            wct.setBounds(taskInfo.token, null);
+-                        }
+-                        getWindowOrganizerController().startNewTransition(type,wct);
+-                    }else {
+-                        Log.e(TAG, "toggleFreeformWindow: other > " + rootTaskInfos.get(i).toString());
+-                    }
+-                }
+-            }
++            testFinish(pkg,mainClass);
+         } catch (Exception e) {
+-            //throw new RuntimeException(e);
+         }finally {
+             Binder.restoreCallingIdentity(ident);
+         }
+     }
+ 
+     @Override
+-    public void backActivity(String pkg,String mainClass){
++    public void notifyCustomChanged(String json){
+         final long ident = Binder.clearCallingIdentity();
+         try {
+-            testFinish(pkg,mainClass);
++            getTaskChangeNotificationController().notifyCustomChanged(json);
+         } catch (Exception e) {
+         }finally {
+             Binder.restoreCallingIdentity(ident);
+         }
+     }
+ 
+-//    @Override
+-//    public void notifyCustomChanged(String from,String to , String json){
+-//        final long ident = Binder.clearCallingIdentity();
+-//        try {
+-//            getTaskChangeNotificationController().notifyCustomChanged(json);
+-//        } catch (Exception e) {
+-//        }finally {
+-//            Binder.restoreCallingIdentity(ident);
+-//        }
+-//    }
+-
+     private void testFinish(String pkg,String className){
+         Intent intent = new Intent();
+         intent.setComponent(new ComponentName(pkg,className));
+ 
+-        ResolveInfo resolveInfo = mTaskSupervisor.resolveIntent(intent, null, 10, 0,
++        ResolveInfo resolveInfo = mTaskSupervisor.resolveIntent(intent,
++                null,
++                10,
++                0,
+                 Binder.getCallingUid(),
+                 Binder.getCallingPid());
+ 
+         ActivityInfo activityInfo = mTaskSupervisor.resolveActivity(intent, resolveInfo, 0, null);
++
++        String taskAffinity = activityInfo.taskAffinity;
++        if (taskAffinity != null){
++            Log.e(TAG, "testFinish: taskAffinity = " +taskAffinity);
++        }
+         ActivityRecord activity = mRootWindowContainer.findActivity(intent, activityInfo, false);
+         Log.e(TAG, "testFinish: activity = " +activity);
+         if (activity != null){
+diff --git a/services/core/java/com/android/server/wm/TaskChangeNotificationController.java b/services/core/java/com/android/server/wm/TaskChangeNotificationController.java
+index 6580f6e177b1..ebfc564f7e24 100644
+--- a/services/core/java/com/android/server/wm/TaskChangeNotificationController.java
++++ b/services/core/java/com/android/server/wm/TaskChangeNotificationController.java
+@@ -195,9 +195,9 @@ class TaskChangeNotificationController {
+         l.onLockTaskModeChanged(m.arg1);
+     };
+ 
+-//    private final TaskStackConsumer mNotifyCustomChanged = (l, m) -> {
+-//        l.onCustomChanged((String) m.obj);
+-//    };
++    private final TaskStackConsumer mNotifyCustomChanged = (l, m) -> {
++        l.onCustomChanged((String) m.obj);
++    };
+ 
+     @FunctionalInterface
+     public interface TaskStackConsumer {
+@@ -294,6 +294,9 @@ class TaskChangeNotificationController {
+                 case NOTIFY_TASK_SNAPSHOT_INVALIDATED_LISTENERS_MSG:
+                     forAllRemoteListeners(mNotifyTaskSnapshotInvalidated, msg);
+                     break;
++                case NOTIFY_CUSTOME_CHANGED_MSG:
++                    forAllRemoteListeners(mNotifyCustomChanged, msg);
++                    break;
+             }
+             if (msg.obj instanceof SomeArgs) {
+                 ((SomeArgs) msg.obj).recycle();
+@@ -463,14 +466,14 @@ class TaskChangeNotificationController {
+ 
+     }
+ 
+-//    void notifyCustomChanged(String arg) {
+-//        final Message msg = mHandler.obtainMessage(NOTIFY_CUSTOME_CHANGED_MSG, arg);
+-//        forAllLocalListeners(mNotifyCustomChanged, msg);
+-//        msg.sendToTarget();
+-//
+-//        Log.e("test0106", "notifyCustomChanged: " + arg);
+-//
+-//    }
++    void notifyCustomChanged(String arg) {
++        final Message msg = mHandler.obtainMessage(NOTIFY_CUSTOME_CHANGED_MSG, arg);
++        forAllLocalListeners(mNotifyCustomChanged, msg);
++        msg.sendToTarget();
++
++        Log.e("test0106", "notifyCustomChanged: " + arg);
++
++    }
+ 
+     void notifyActivityRequestedOrientationChanged(int taskId, int orientation) {
+         final Message msg = mHandler.obtainMessage(
+diff --git a/services/core/java/com/android/server/wm/TaskDisplayArea.java b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+index 7f5294818f0b..afdb25a18b66 100644
+--- a/services/core/java/com/android/server/wm/TaskDisplayArea.java
++++ b/services/core/java/com/android/server/wm/TaskDisplayArea.java
+@@ -61,7 +61,6 @@ import com.android.internal.util.function.pooled.PooledPredicate;
+ import com.android.server.pm.UserManagerInternal;
+ import com.android.server.wm.LaunchParamsController.LaunchParams;
+ 
+-import org.json.JSONException;
+ import org.json.JSONObject;
+ 
+ import java.io.PrintWriter;
+@@ -1295,7 +1294,7 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+         return someActivityPaused[0] > 0;
+     }
+     
+-//    private void moveTaskToBack(ActivityRecord resuming){
++    private void moveTaskToBack(ActivityRecord resuming){
+ //        if (!resuming.getRootTask().inFreeformWindowingMode())return;
+ //        List<ActivityRecord> mActivityRecord = mAtmService.mActivityClientController.mActivityRecord;
+ //        for (int i = 0; i < mActivityRecord.size(); i++) {
+@@ -1303,15 +1302,20 @@ final class TaskDisplayArea extends DisplayArea<WindowContainer> {
+ //            if (resuming.getRootTask().getRootTaskId() != rootTask.getRootTaskId()){
+ //                Log.e("Zhangxml1127", "moveTaskToBack: " +mActivityRecord.get(i));
+ //                rootTask.moveTaskToBack(rootTask);
+-//                try {
+-//                    JSONObject obj = new JSONObject().put("from", "android").put("to", "app").put("arg1", "moveTaskToBack");
+-//                    mAtmService.notifyCustomChanged(obj.toString());
+-//                } catch (Exception e) {
+-//                }
++                try {
++
++                    JSONObject obj = new JSONObject()
++                            .put("from", "android")
++                            .put("to", "app")
++                            .put("arg1", "moveTaskToBack");
++
++                    mAtmService.notifyCustomChanged(obj.toString());
++                } catch (Exception e) {
++                }
+ //
+ //            }
+ //        }
+-//    }
++    }
+ 
+ 
+     /**

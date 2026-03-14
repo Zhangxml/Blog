@@ -1,0 +1,200 @@
+diff --git a/core/java/android/app/IActivityTaskManager.aidl b/core/java/android/app/IActivityTaskManager.aidl
+index 6c6709bb2b47..8065b7fa1d32 100644
+--- a/core/java/android/app/IActivityTaskManager.aidl
++++ b/core/java/android/app/IActivityTaskManager.aidl
+@@ -408,4 +408,6 @@ interface IActivityTaskManager {
+      * @hide
+      */
+     void unregisterScreenCaptureObserver(IBinder activityToken, IScreenCaptureObserver observer);
++
++    void toggleFreeformWindow(boolean enterFreeForm);
+ }
+diff --git a/core/res/res/values/config.xml b/core/res/res/values/config.xml
+index 59c7fd027a79..5a2ea5e82616 100644
+--- a/core/res/res/values/config.xml
++++ b/core/res/res/values/config.xml
+@@ -7472,4 +7472,6 @@
+     <!-- Biometrics fingerprint frr notification target activity component name, it shall be customized by OEMs -->
+     <string translatable="false" name="config_fingerprintFrrTargetComponent"></string>
+ 
++    <bool name="config_freeformWindowManagement">true</bool>
++
+ </resources>
+diff --git a/core/res/res/values/symbols.xml b/core/res/res/values/symbols.xml
+index 70e3356a46fe..e66b1e345618 100644
+--- a/core/res/res/values/symbols.xml
++++ b/core/res/res/values/symbols.xml
+@@ -6000,4 +6000,6 @@
+   <java-symbol type="string" name="fingerprint_frr_notification_title" />
+   <java-symbol type="string" name="fingerprint_frr_notification_msg" />
+ 
++  <java-symbol type="bool" name="config_freeformWindowManagement" />
++
+ </resources>
+diff --git a/services/core/java/com/android/server/am/ActivityManagerShellCommand.java b/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
+index 5c2bd0a0e90f..25d059352c72 100644
+--- a/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
++++ b/services/core/java/com/android/server/am/ActivityManagerShellCommand.java
+@@ -234,6 +234,15 @@ final class ActivityManagerShellCommand extends ShellCommand {
+         mDumping = dumping;
+     }
+ 
++    public void toggleFreeformWindow(PrintWriter pw) throws RemoteException{
++        String enter = getNextArgRequired();
++        if ("true".equals(enter)){
++            mTaskInterface.toggleFreeformWindow(true);
++        }else if ("false".equals(enter)){
++            mTaskInterface.toggleFreeformWindow(false);
++        }
++    }
++
+     @Override
+     public int onCommand(String cmd) {
+         if (cmd == null) {
+@@ -242,6 +251,9 @@ final class ActivityManagerShellCommand extends ShellCommand {
+         final PrintWriter pw = getOutPrintWriter();
+         try {
+             switch (cmd) {
++                case "freeform":
++                    toggleFreeformWindow(pw);
++                    return 0;
+                 case "help":
+                     onHelp();
+                     return 0;
+diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+index a0c38dd82037..b86c528b84c6 100644
+--- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+@@ -38,7 +38,10 @@ import static android.app.ActivityManagerInternal.ALLOW_NON_FULL;
+ import static android.app.ActivityTaskManager.INVALID_TASK_ID;
+ import static android.app.ActivityTaskManager.RESIZE_MODE_PRESERVE_WINDOW;
+ import static android.app.WindowConfiguration.ACTIVITY_TYPE_DREAM;
++import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
++import static android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
+ import static android.app.WindowConfiguration.WINDOWING_MODE_PINNED;
++import static android.app.WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+ import static android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
+ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+ import static android.content.pm.ActivityInfo.RESIZE_MODE_UNRESIZEABLE;
+@@ -160,6 +163,7 @@ import android.app.PictureInPictureParams;
+ import android.app.PictureInPictureUiState;
+ import android.app.ProfilerInfo;
+ import android.app.WaitResult;
++import android.app.WindowConfiguration;
+ import android.app.admin.DevicePolicyCache;
+ import android.app.admin.DeviceStateCache;
+ import android.app.assist.ActivityId;
+@@ -241,6 +245,7 @@ import android.window.BackNavigationInfo;
+ import android.window.IWindowOrganizerController;
+ import android.window.SplashScreenView.SplashScreenViewParcelable;
+ import android.window.TaskSnapshot;
++import android.window.WindowContainerTransaction;
+ 
+ import com.android.internal.R;
+ import com.android.internal.annotations.GuardedBy;
+@@ -1272,6 +1277,23 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+         mAmInternal.addCreatorToken(intent, callingPackage);
+         final int callingPid = Binder.getCallingPid();
+         final int callingUid = Binder.getCallingUid();
++
++        //  adb shell am start -n com.example.androidcar/.MainActivity --ei "position" 1
++        if (intent!=null && intent.getComponent()!=null){
++            String packageName = intent.getComponent().getPackageName();
++            if (packageName.equals("com.example.androidcar")){
++                Bundle extras = intent.getExtras();
++                if (extras !=null){
++                    int position = extras.getInt("position", -1);
++                    if (bOptions ==null) bOptions = new Bundle();
++                    if (position == 1){
++                        bOptions.putInt("android.activity.windowingMode",5);
++                        bOptions.putParcelable("android:activity.launchBounds",new Rect(0,0,400,696));
++                    }
++                }
++            }
++        }
++
+         final SafeActivityOptions opts = SafeActivityOptions.fromBundle(
+                 bOptions, callingPid, callingUid);
+ 
+@@ -1315,6 +1337,81 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
+                 .execute();
+     }
+ 
++//    @Override
++//    public void toggleFreeformWindow(boolean enterFreeForm) {
++//        enforceTaskPermission("toggleFreeformWindow()");
++//        final long ident = Binder.clearCallingIdentity();
++//        try {
++//            synchronized (mGlobalLock) {
++//                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
++//                for (int i = 0; i < rootTaskInfos.size(); i++) {
++//                    if (i == 0){
++//                        Task task = mRootWindowContainer.anyTaskForId(rootTaskInfos.get(i).taskId);
++//                        final Transition transition = new Transition(TRANSIT_CHANGE, 0 /* flags */,
++//                                getTransitionController(), mWindowManager.mSyncEngine);
++//                        getTransitionController().startCollectOrQueue(transition,
++//                                (deferred) -> {
++//                                    if (deferred && !task.getWindowConfiguration().canResizeTask()) {
++//                                        Slog.w(TAG, "resizeTask not allowed on task=" + task);
++//                                        transition.abort();
++//                                        return;
++//                                    }
++//                                    getTransitionController().requestStartTransition(transition, task,
++//                                            null /* remoteTransition */, null /* displayChange */);
++//                                    transition.collect(task);
++//                                    if (enterFreeForm) {
++//                                        task.setWindowingMode(
++//                                                WINDOWING_MODE_FREEFORM);
++//                                    } else {
++//                                        task.setWindowingMode(
++//                                                WindowConfiguration.WINDOWING_MODE_FULLSCREEN);
++//                                        task.setBounds(null);
++//                                    }
++//                                    transition.setReady(task, true);
++//                                });
++//                    }
++//                }
++//            }
++//        } finally {
++//            Binder.restoreCallingIdentity(ident);
++//        }
++//    }
++
++    @Override
++    public void toggleFreeformWindow(boolean enterFreeForm) {
++        enforceTaskPermission("toggleFreeformWindow()");
++        final long ident = Binder.clearCallingIdentity();
++        try {
++            synchronized (mGlobalLock) {
++                final ArrayList<RootTaskInfo> rootTaskInfos = mRootWindowContainer.getAllRootTaskInfos(DEFAULT_DISPLAY);
++                for (int i = 0; i < rootTaskInfos.size(); i++) {
++                    if (i == 0){
++                        Log.e(TAG, "toggleFreeformWindow: enterFreeForm = " +enterFreeForm +" , "+ rootTaskInfos.get(i).toString());
++                        RootTaskInfo taskInfo = rootTaskInfos.get(i);
++                        WindowContainerTransaction wct = new WindowContainerTransaction();
++                        int type = 0;
++                        if (enterFreeForm){
++                            type = 1009;
++                            wct.setWindowingMode(taskInfo.token, WINDOWING_MODE_FREEFORM);
++                            wct.setBounds(taskInfo.token, new Rect(0,76,400,696));
++                        }else {
++                            type = 1008;
++                            wct.setWindowingMode(taskInfo.token,WINDOWING_MODE_FULLSCREEN);
++                            wct.setBounds(taskInfo.token, null);
++                        }
++                        getWindowOrganizerController().startNewTransition(type,wct);
++                    }else {
++                        Log.e(TAG, "toggleFreeformWindow: other > " + rootTaskInfos.get(i).toString());
++                    }
++                }
++            }
++        } catch (Exception e) {
++            //throw new RuntimeException(e);
++        }finally {
++            Binder.restoreCallingIdentity(ident);
++        }
++    }
++
+     @Override
+     public int startActivityIntentSender(IApplicationThread caller, IIntentSender target,
+             IBinder allowlistToken, Intent fillInIntent, String resolvedType, IBinder resultTo,

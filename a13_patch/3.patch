@@ -1,0 +1,683 @@
+commit 909a3acec911587060246df56d9aedef4790ef3f
+Author: zhangpeng <p421123@163.com>
+Date:   Fri Dec 20 14:54:33 2024 +0800
+
+    system app
+    
+    Change-Id: I2b30bad61040b6818b793f4f7d3ba9bb48743ffc
+
+diff --git a/data/etc/Android.bp b/data/etc/Android.bp
+index df51871c57d9..efae8816105e 100644
+--- a/data/etc/Android.bp
++++ b/data/etc/Android.bp
+@@ -171,6 +171,14 @@ prebuilt_etc {
+     filename_from_src: true,
+ }
+ 
++prebuilt_etc {
++    name: "privapp_whitelist_com.android.exampleapk",
++    system_ext_specific: true,
++    sub_dir: "permissions",
++    src: "com.android.exampleapk.xml",
++    filename_from_src: true,
++}
++
+ prebuilt_etc {
+     name: "com.android.timezone.updater.xml",
+     sub_dir: "permissions",
+diff --git a/data/etc/com.android.exampleapk.xml b/data/etc/com.android.exampleapk.xml
+new file mode 100644
+index 000000000000..b71c5743defb
+--- /dev/null
++++ b/data/etc/com.android.exampleapk.xml
+@@ -0,0 +1,87 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  ~ Copyright (C) 2018 The Android Open Source Project
++  ~
++  ~ Licensed under the Apache License, Version 2.0 (the "License");
++  ~ you may not use this file except in compliance with the License.
++  ~ You may obtain a copy of the License at
++  ~
++  ~      http://www.apache.org/licenses/LICENSE-2.0
++  ~
++  ~ Unless required by applicable law or agreed to in writing, software
++  ~ distributed under the License is distributed on an "AS IS" BASIS,
++  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++  ~ See the License for the specific language governing permissions and
++  ~ limitations under the License
++  -->
++<permissions>
++    <privapp-permissions package="com.android.exampleapk">
++        <permission name="android.permission.CAPTURE_AUDIO_OUTPUT"/>
++        <permission name="android.permission.ALLOW_SLIPPERY_TOUCHES"/>
++        <permission name="android.permission.BATTERY_STATS"/>
++        <permission name="android.permission.BIND_APPWIDGET"/>
++        <permission name="android.permission.BLUETOOTH_PRIVILEGED"/>
++        <permission name="android.permission.CHANGE_COMPONENT_ENABLED_STATE"/>
++        <permission name="android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST"/>
++        <permission name="android.permission.CHANGE_OVERLAY_PACKAGES"/>
++        <permission name="android.permission.CONTROL_KEYGUARD_SECURE_NOTIFICATIONS"/>
++        <permission name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS"/>
++        <permission name="android.permission.CONTROL_VPN"/>
++        <permission name="android.permission.DUMP"/>
++        <permission name="android.permission.GET_APP_OPS_STATS"/>
++        <permission name="android.permission.INTERACT_ACROSS_USERS"/>
++        <permission name="android.permission.MANAGE_DEBUGGING"/>
++        <permission name="android.permission.MANAGE_GAME_MODE" />
++        <permission name="android.permission.MANAGE_SENSOR_PRIVACY"/>
++        <permission name="android.permission.MANAGE_USB"/>
++        <permission name="android.permission.MANAGE_USERS"/>
++        <permission name="android.permission.MASTER_CLEAR"/>
++        <permission name="android.permission.MEDIA_CONTENT_CONTROL"/>
++        <permission name="android.permission.MODIFY_AUDIO_ROUTING" />
++        <permission name="android.permission.MODIFY_DAY_NIGHT_MODE"/>
++        <permission name="android.permission.MODIFY_PHONE_STATE"/>
++        <permission name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
++        <permission name="android.permission.OBSERVE_NETWORK_POLICY"/>
++        <permission name="android.permission.OBSERVE_GRANT_REVOKE_PERMISSIONS" />
++        <permission name="android.permission.OVERRIDE_WIFI_CONFIG"/>
++        <permission name="android.permission.PACKAGE_USAGE_STATS" />
++        <permission name="android.permission.READ_DREAM_STATE"/>
++        <permission name="android.permission.READ_FRAME_BUFFER"/>
++        <permission name="android.permission.READ_NETWORK_USAGE_HISTORY"/>
++        <permission name="android.permission.READ_PRIVILEGED_PHONE_STATE"/>
++        <permission name="android.permission.READ_PRECISE_PHONE_STATE"/>
++        <permission name="android.permission.REAL_GET_TASKS"/>
++        <permission name="android.permission.REQUEST_NETWORK_SCORES"/>
++        <permission name="android.permission.RECEIVE_MEDIA_RESOURCE_USAGE"/>
++        <permission name="android.permission.SET_WALLPAPER_DIM_AMOUNT"/>
++        <permission name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
++        <permission name="android.permission.START_ACTIVITY_AS_CALLER"/>
++        <permission name="android.permission.START_TASKS_FROM_RECENTS"/>
++        <permission name="android.permission.STATUS_BAR"/>
++        <permission name="android.permission.STOP_APP_SWITCHES"/>
++        <permission name="android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME"/>
++        <permission name="android.permission.TETHER_PRIVILEGED"/>
++        <permission name="android.permission.UPDATE_APP_OPS_STATS"/>
++        <permission name="android.permission.USE_RESERVED_DISK"/>
++        <permission name="android.permission.WATCH_APPOPS"/>
++        <permission name="android.permission.WRITE_DREAM_STATE"/>
++        <permission name="android.permission.WRITE_MEDIA_STORAGE"/>
++        <permission name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
++        <permission name="android.permission.WRITE_SECURE_SETTINGS"/>
++        <permission name="android.permission.WRITE_EMBEDDED_SUBSCRIPTIONS"/>
++        <permission name="android.permission.CONTROL_DISPLAY_COLOR_TRANSFORMS" />
++        <permission name="android.permission.CAMERA_OPEN_CLOSE_LISTENER" />
++        <permission name="android.permission.READ_WIFI_CREDENTIAL" />
++        <permission name="android.permission.USE_BACKGROUND_BLUR" />
++        <permission name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS" />
++        <permission name="android.permission.FORCE_STOP_PACKAGES" />
++        <permission name="android.permission.ACCESS_FPS_COUNTER" />
++        <permission name="android.permission.CHANGE_CONFIGURATION" />
++        <permission name="android.permission.LOG_COMPAT_CHANGE" />
++        <permission name="android.permission.READ_COMPAT_CHANGE_CONFIG" />
++        <permission name="android.permission.READ_DEVICE_CONFIG" />
++        <permission name="android.permission.READ_SAFETY_CENTER_STATUS" />
++        <permission name="android.permission.SET_UNRESTRICTED_KEEP_CLEAR_AREAS" />
++        <permission name="android.permission.READ_SEARCH_INDEXABLES" />
++    </privapp-permissions>
++</permissions>
+diff --git a/packages/ExampleApk/Android.bp b/packages/ExampleApk/Android.bp
+new file mode 100644
+index 000000000000..2f96bbace3f0
+--- /dev/null
++++ b/packages/ExampleApk/Android.bp
+@@ -0,0 +1,49 @@
++android_app {
++
++    name: "ExampleApk",
++
++    platform_apis: true,
++    system_ext_specific: true,
++    certificate: "platform",
++    privileged: true,
++
++    kotlincflags: ["-Xjvm-default=enable"],
++    optimize: {
++        proguard_flags_files: ["proguard.flags"],
++    },
++
++    libs: [
++       "kotlin-annotations",
++       "app-compat-annotations",
++    ],
++
++    static_libs: [
++        "kotlin-stdlib",
++        "androidx.appcompat_appcompat",
++        "androidx.legacy_legacy-support-core-ui",
++        "androidx.legacy_legacy-support-v13",
++        "androidx.legacy_legacy-support-v4",
++        "androidx.recyclerview_recyclerview",
++        "androidx.recyclerview_recyclerview-selection",
++        "androidx.transition_transition",
++        "apache-commons-compress",
++        "com.google.android.material_material",
++        "guava",
++        "modules-utils-build_system",
++    ],
++
++   manifest: "AndroidManifest.xml",
++
++   srcs: [
++       "src/**/*.java",
++   ],
++
++   resource_dirs: [
++        "res",
++   ],
++
++   required: [
++       "privapp_whitelist_com.android.exampleapk",
++   ],
++}
++
+diff --git a/packages/ExampleApk/AndroidManifest.xml b/packages/ExampleApk/AndroidManifest.xml
+new file mode 100644
+index 000000000000..c7462e8c27ba
+--- /dev/null
++++ b/packages/ExampleApk/AndroidManifest.xml
+@@ -0,0 +1,359 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++/*
++ * Copyright (C) 2016 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++-->
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.android.exampleapk"
++    android:sharedUserId="android.uid.system"
++    xmlns:tools="http://schemas.android.com/tools"
++    coreApp="true">
++
++    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++
++    <!-- Used to read wallpaper -->
++    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
++
++    <!-- Used to read storage for all users -->
++    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
++    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
++    <uses-permission android:name="android.permission.WAKE_LOCK" />
++
++    <uses-permission android:name="android.permission.INJECT_EVENTS" />
++    <uses-permission android:name="android.permission.MODIFY_TOUCH_MODE_STATE" />
++    <uses-permission android:name="android.permission.DUMP" />
++    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
++    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
++
++    <uses-permission android:name="android.permission.STATUS_BAR_SERVICE" />
++    <uses-permission android:name="android.permission.STATUS_BAR" />
++    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
++    <uses-permission android:name="android.permission.REMOTE_AUDIO_PLAYBACK" />
++
++    <uses-permission android:name="android.permission.MANAGE_USERS" />
++    <uses-permission android:name="android.permission.READ_PROFILE" />
++    <uses-permission android:name="android.permission.READ_CONTACTS" />
++    <uses-permission android:name="android.permission.CONFIGURE_WIFI_DISPLAY" />
++    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
++    <uses-permission android:name="android.permission.GET_APP_OPS_STATS" />
++    <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
++
++    <!-- to invoke ContentSuggestionsService -->
++    <uses-permission android:name="android.permission.MANAGE_CONTENT_SUGGESTIONS"/>
++
++    <!-- Networking and telephony -->
++    <uses-permission android:name="android.permission.BLUETOOTH" />
++    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
++    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"
++        android:usesPermissionFlags="neverForLocation" />
++    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"
++        android:usesPermissionFlags="neverForLocation" />
++    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
++        android:usesPermissionFlags="neverForLocation" />
++    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" />
++    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
++    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
++    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
++    <uses-permission android:name="android.permission.READ_PRECISE_PHONE_STATE" />
++    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
++    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
++    <uses-permission android:name="android.permission.OVERRIDE_WIFI_CONFIG" />
++    <uses-permission android:name="android.permission.MANAGE_NETWORK_POLICY" />
++    <uses-permission android:name="android.permission.OBSERVE_NETWORK_POLICY" />
++    <uses-permission android:name="android.permission.NETWORK_SETTINGS" />
++    <uses-permission android:name="android.permission.TETHER_PRIVILEGED" />
++    <uses-permission android:name="android.permission.READ_NETWORK_USAGE_HISTORY" />
++    <uses-permission android:name="android.permission.REQUEST_NETWORK_SCORES" />
++    <uses-permission android:name="android.permission.CONTROL_VPN" />
++    <uses-permission android:name="android.permission.PEERS_MAC_ADDRESS"/>
++    <uses-permission android:name="android.permission.READ_WIFI_CREDENTIAL"/>
++    <!-- Physical hardware -->
++    <uses-permission android:name="android.permission.MANAGE_USB" />
++    <uses-permission android:name="android.permission.CONTROL_DISPLAY_BRIGHTNESS" />
++    <uses-permission android:name="android.permission.DEVICE_POWER" />
++    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
++    <uses-permission android:name="android.permission.MASTER_CLEAR" />
++    <uses-permission android:name="android.permission.VIBRATE" />
++    <uses-permission android:name="android.permission.MANAGE_SENSOR_PRIVACY" />
++    <uses-permission android:name="android.permission.OBSERVE_SENSOR_PRIVACY" />
++    <uses-permission android:name="android.permission.ACCESS_AMBIENT_CONTEXT_EVENT" />
++
++    <!-- ActivityManager -->
++    <uses-permission android:name="android.permission.REAL_GET_TASKS" />
++    <uses-permission android:name="android.permission.GET_DETAILED_TASKS" />
++    <uses-permission android:name="android.permission.REORDER_TASKS" />
++    <uses-permission android:name="android.permission.REMOVE_TASKS" />
++    <uses-permission android:name="android.permission.STOP_APP_SWITCHES" />
++    <uses-permission android:name="android.permission.SET_SCREEN_COMPATIBILITY" />
++    <uses-permission android:name="android.permission.START_ANY_ACTIVITY" />
++    <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
++    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
++    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
++    <uses-permission android:name="android.permission.GET_TOP_ACTIVITY_INFO" />
++    <uses-permission android:name="android.permission.MANAGE_ACTIVITY_TASKS" />
++    <uses-permission android:name="android.permission.START_ACTIVITY_AS_CALLER" />
++    <uses-permission android:name="android.permission.START_TASKS_FROM_RECENTS" />
++    <uses-permission android:name="android.permission.GET_INTENT_SENDER_INTENT" />
++    <uses-permission android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS" />
++
++    <!-- WindowManager -->
++    <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW" />
++    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
++    <uses-permission android:name="android.permission.READ_FRAME_BUFFER" />
++    <uses-permission android:name="android.permission.MANAGE_APP_TOKENS" />
++    <uses-permission android:name="android.permission.REGISTER_WINDOW_MANAGER_LISTENERS" />
++    <uses-permission android:name="android.permission.SET_ORIENTATION" />
++    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
++    <uses-permission android:name="android.permission.MONITOR_INPUT" />
++    <uses-permission android:name="android.permission.ALLOW_SLIPPERY_TOUCHES" />
++    <uses-permission android:name="android.permission.INPUT_CONSUMER" />
++
++    <!-- DeviceStateManager -->
++    <uses-permission android:name="android.permission.CONTROL_DEVICE_STATE" />
++
++    <!-- DreamManager -->
++    <uses-permission android:name="android.permission.READ_DREAM_STATE" />
++    <uses-permission android:name="android.permission.WRITE_DREAM_STATE" />
++
++    <!-- Alarm clocks -->
++    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
++
++    <!-- Keyguard -->
++    <uses-permission android:name="android.permission.WRITE_EMBEDDED_SUBSCRIPTIONS" />
++    <uses-permission android:name="android.permission.CONTROL_KEYGUARD" />
++    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
++    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
++    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
++    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN" />
++    <uses-permission android:name="android.permission.CHANGE_COMPONENT_ENABLED_STATE" />
++    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
++    <uses-permission android:name="android.permission.ACCESS_KEYGUARD_SECURE_STORAGE" />
++    <uses-permission android:name="android.permission.TRUST_LISTENER" />
++    <uses-permission android:name="android.permission.USE_BIOMETRIC_INTERNAL" />
++    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
++    <uses-permission android:name="android.permission.RESET_FINGERPRINT_LOCKOUT" />
++    <uses-permission android:name="android.permission.MANAGE_BIOMETRIC" />
++    <uses-permission android:name="android.permission.MANAGE_SLICE_PERMISSIONS" />
++    <uses-permission android:name="android.permission.CONTROL_KEYGUARD_SECURE_NOTIFICATIONS" />
++    <uses-permission android:name="android.permission.GET_RUNTIME_PERMISSIONS" />
++
++    <!-- For auto-grant the access to the Settings' slice preferences, e.g. volume slices. -->
++    <uses-permission android:name="android.permission.READ_SEARCH_INDEXABLES" />
++
++    <!-- Needed for WallpaperManager.clear in ImageWallpaper.updateWallpaperLocked -->
++    <uses-permission android:name="android.permission.SET_WALLPAPER"/>
++
++    <!-- Needed for WallpaperManager.getWallpaperDimAmount in CentralSurfaces.updateTheme -->
++    <uses-permission android:name="android.permission.SET_WALLPAPER_DIM_AMOUNT"/>
++
++    <!-- Wifi Display -->
++    <uses-permission android:name="android.permission.CONFIGURE_WIFI_DISPLAY" />
++
++    <uses-permission android:name="android.permission.CAMERA" />
++    <uses-permission android:name="android.permission.CAMERA_OPEN_CLOSE_LISTENER" />
++
++    <!-- Screen Capturing -->
++    <uses-permission android:name="android.permission.MANAGE_MEDIA_PROJECTION" />
++
++    <!-- Screen Recording -->
++    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
++    <uses-permission android:name="android.permission.RECORD_AUDIO" />
++    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT"/>
++
++    <!-- Assist -->
++    <uses-permission android:name="android.permission.ACCESS_VOICE_INTERACTION_SERVICE" />
++
++    <!-- Doze mode temp whitelisting for notification dispatching. -->
++    <uses-permission android:name="android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST" />
++
++    <!-- Listen for keyboard attachment / detachment -->
++    <uses-permission android:name="android.permission.TABLET_MODE" />
++
++    <!-- Self permission for internal broadcasts. -->
++    <permission android:name="com.android.systemui.permission.SELF"
++        android:protectionLevel="signature" />
++    <uses-permission android:name="com.android.systemui.permission.SELF" />
++
++    <permission android:name="com.android.systemui.permission.PLUGIN"
++        android:protectionLevel="signature" />
++
++    <permission android:name="com.android.systemui.permission.FLAGS"
++        android:protectionLevel="signature" />
++
++    <permission android:name="android.permission.CUSTOMIZE_SYSTEM_UI"
++        android:protectionLevel="signature|privileged" />
++
++    <!-- Adding Quick Settings tiles -->
++    <uses-permission android:name="android.permission.BIND_QUICK_SETTINGS_TILE" />
++
++    <!-- Access Quick Access Wallet cards -->
++    <uses-permission android:name="android.permission.BIND_QUICK_ACCESS_WALLET_SERVICE" />
++
++    <!-- Adding Controls to SystemUI -->
++    <uses-permission android:name="android.permission.BIND_CONTROLS" />
++    <!-- Check foreground controls applications -->
++    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
++
++    <!-- Quick Settings tile: Night Mode / Dark Theme -->
++    <uses-permission android:name="android.permission.MODIFY_DAY_NIGHT_MODE" />
++
++    <!-- Block notifications inline notifications -->
++    <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
++
++    <!-- Access battery information -->
++    <uses-permission android:name="android.permission.BATTERY_STATS" />
++
++    <!-- DevicePolicyManager get user restrictions -->
++    <uses-permission android:name="android.permission.MANAGE_PROFILE_AND_DEVICE_OWNERS" />
++
++    <!-- DevicePolicyManager get admin policy -->
++    <uses-permission android:name="android.permission.QUERY_ADMIN_POLICY" />
++
++    <!-- TV picture-in-picture -->
++    <uses-permission android:name="android.permission.RECEIVE_MEDIA_RESOURCE_USAGE" />
++
++    <!-- notifications & DND access -->
++    <uses-permission android:name="android.permission.MANAGE_NOTIFICATIONS" />
++    <uses-permission android:name="android.permission.GET_RUNTIME_PERMISSIONS" />
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
++    <uses-permission android:name="android.permission.MANAGE_ROLE_HOLDERS" />
++
++    <!-- It's like, reality, but, you know, virtual -->
++    <uses-permission android:name="android.permission.ACCESS_VR_MANAGER" />
++
++    <!-- the ability to rename notifications posted by other apps -->
++    <uses-permission android:name="android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME" />
++
++    <!-- shortcut manager -->
++    <uses-permission android:name="android.permission.RESET_SHORTCUT_MANAGER_THROTTLING" />
++
++    <!-- launcher apps -->
++    <uses-permission android:name="android.permission.ACCESS_SHORTCUTS" />
++
++    <uses-permission android:name="android.permission.MODIFY_THEME_OVERLAY" />
++
++    <!-- accessibility -->
++    <uses-permission android:name="android.permission.MODIFY_ACCESSIBILITY_DATA" />
++    <uses-permission android:name="android.permission.MANAGE_ACCESSIBILITY" />
++    <uses-permission android:name="android.permission.ACT_AS_PACKAGE_FOR_ACCESSIBILITY" />
++
++    <!-- to control accessibility volume -->
++    <uses-permission android:name="android.permission.CHANGE_ACCESSIBILITY_VOLUME" />
++
++    <!-- to access ResolverRankerServices -->
++    <uses-permission android:name="android.permission.BIND_RESOLVER_RANKER_SERVICE" />
++
++    <!-- to access instant apps -->
++    <uses-permission android:name="android.permission.ACCESS_INSTANT_APPS" />
++
++    <!-- to control remote app transitions -->
++    <uses-permission android:name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS" />
++
++    <!-- to change themes - light or dark -->
++    <uses-permission android:name="android.permission.CHANGE_OVERLAY_PACKAGES" />
++
++    <!-- Listen app op changes -->
++    <uses-permission android:name="android.permission.WATCH_APPOPS" />
++    <uses-permission android:name="android.permission.OBSERVE_GRANT_REVOKE_PERMISSIONS" />
++    <!-- For handling silent audio recordings -->
++    <uses-permission android:name="android.permission.MODIFY_AUDIO_ROUTING" />
++    <!-- For asking AudioManager audio information -->
++    <uses-permission android:name="android.permission.QUERY_AUDIO_STATE"/>
++
++    <!-- to read and change hvac values in a car -->
++    <uses-permission android:name="android.car.permission.CONTROL_CAR_CLIMATE" />
++
++    <!-- Permission necessary to change car audio volume through CarAudioManager -->
++    <uses-permission android:name="android.car.permission.CAR_CONTROL_AUDIO_VOLUME" />
++
++    <!-- Permission to control Android Debug Bridge (ADB) -->
++    <uses-permission android:name="android.permission.MANAGE_DEBUGGING" />
++
++    <uses-permission android:name="android.permission.HIDE_NON_SYSTEM_OVERLAY_WINDOWS" />
++
++    <!-- Permission to change the display color -->
++    <uses-permission android:name="android.permission.CONTROL_DISPLAY_COLOR_TRANSFORMS" />
++
++    <!-- Query all packages on device on R+ -->
++    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
++
++    <queries>
++        <intent>
++            <action android:name="android.intent.action.CREATE_NOTE" />
++        </intent>
++    </queries>
++
++    <!-- Permission to register process observer -->
++    <uses-permission android:name="android.permission.SET_ACTIVITY_WATCHER"/>
++
++    <!-- Be allowed to send commands to Flinger via SurfaceControl. -->
++    <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER" />
++
++    <!-- Restore settings (used by QS) even if they have been modified -->
++    <uses-permission android:name="android.permission.MODIFY_SETTINGS_OVERRIDEABLE_BY_RESTORE" />
++
++    <!-- Permission to make accessibility service access Bubbles -->
++    <uses-permission android:name="android.permission.ADD_TRUSTED_DISPLAY" />
++
++    <!-- Permission for Smartspace. -->
++    <uses-permission android:name="android.permission.MANAGE_SMARTSPACE" />
++
++    <uses-permission android:name="android.permission.READ_PEOPLE_DATA" />
++
++    <uses-permission android:name="android.permission.BIND_APPWIDGET" />
++
++    <!-- For clipboard overlay -->
++    <uses-permission android:name="android.permission.READ_CLIPBOARD_IN_BACKGROUND" />
++    <uses-permission android:name="android.permission.SET_CLIP_SOURCE" />
++
++    <!-- To change system language (HDMI CEC) -->
++    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
++    <uses-permission android:name="android.permission.SUPPRESS_CLIPBOARD_ACCESS_NOTIFICATION" />
++
++    <!-- To change system captions state -->
++    <uses-permission android:name="android.permission.SET_SYSTEM_AUDIO_CAPTION" />
++
++    <!-- Compat framework -->
++    <uses-permission android:name="android.permission.LOG_COMPAT_CHANGE" />
++    <uses-permission android:name="android.permission.READ_COMPAT_CHANGE_CONFIG" />
++    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
++
++    <!-- To read safety center status -->
++    <uses-permission android:name="android.permission.READ_SAFETY_CENTER_STATUS" />
++
++    <uses-permission android:name="android.permission.SET_UNRESTRICTED_KEEP_CLEAR_AREAS" />
++
++    <application
++        android:allowBackup="true"
++        android:icon="@mipmap/ic_launcher_android"
++        android:label="@string/app_name"
++        android:resizeableActivity="true"
++        android:supportsRtl="true"
++        android:theme="@style/Theme.MyApplication">
++
++        <activity
++            android:name=".ExampleApp"
++            android:configChanges="screenSize|screenLayout|smallestScreenSize"
++            android:exported="true">
++            <intent-filter>
++                <action android:name="android.intent.action.MAIN" />
++
++                <category android:name="android.intent.category.LAUNCHER" />
++            </intent-filter>
++        </activity>
++
++    </application>
++</manifest>
+diff --git a/packages/ExampleApk/proguard.flags b/packages/ExampleApk/proguard.flags
+new file mode 100644
+index 000000000000..4218baacb245
+--- /dev/null
++++ b/packages/ExampleApk/proguard.flags
+@@ -0,0 +1,15 @@
++# Copyright (C) 2017 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++
+diff --git a/packages/ExampleApk/res/layout/activity_example.xml b/packages/ExampleApk/res/layout/activity_example.xml
+new file mode 100644
+index 000000000000..e55c5506ee80
+--- /dev/null
++++ b/packages/ExampleApk/res/layout/activity_example.xml
+@@ -0,0 +1,21 @@
++<?xml version="1.0" encoding="utf-8"?>
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent">
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:background="#ffffff"
++        android:orientation="vertical">
++
++        <TextView
++            android:layout_width="match_parent"
++            android:layout_height="50dp"
++            android:gravity="center"
++            android:text="SystemApp" />
++
++
++    </LinearLayout>
++</FrameLayout>
+diff --git a/packages/ExampleApk/res/mipmap/ic_launcher_android.png b/packages/ExampleApk/res/mipmap/ic_launcher_android.png
+new file mode 100644
+index 000000000000..2e9b196c9625
+Binary files /dev/null and b/packages/ExampleApk/res/mipmap/ic_launcher_android.png differ
+diff --git a/packages/ExampleApk/res/values/dimens.xml b/packages/ExampleApk/res/values/dimens.xml
+new file mode 100644
+index 000000000000..1ea8c351293d
+--- /dev/null
++++ b/packages/ExampleApk/res/values/dimens.xml
+@@ -0,0 +1,6 @@
++<resources>
++    <dimen name="glif_icon_size">32dp</dimen>
++    <!-- Default screen margins, per the Android Design guidelines. -->
++    <dimen name="activity_horizontal_margin">16dp</dimen>
++    <dimen name="activity_vertical_margin">16dp</dimen>
++</resources>
+diff --git a/packages/ExampleApk/res/values/strings.xml b/packages/ExampleApk/res/values/strings.xml
+new file mode 100644
+index 000000000000..f35115dfabfa
+--- /dev/null
++++ b/packages/ExampleApk/res/values/strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="app_name">ExampleApk</string>
++    <string name="action_bar_label">ExampleApk</string>
++</resources>
+diff --git a/packages/ExampleApk/res/values/styles.xml b/packages/ExampleApk/res/values/styles.xml
+new file mode 100644
+index 000000000000..5a3d7c86f5d8
+--- /dev/null
++++ b/packages/ExampleApk/res/values/styles.xml
+@@ -0,0 +1,9 @@
++<resources xmlns:tools="http://schemas.android.com/tools">
++    <!-- Base application theme. -->
++    <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
++        <!-- Customize your light theme here. -->
++        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
++    </style>
++
++    <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
++</resources>
+diff --git a/packages/ExampleApk/src/com/android/exampleapk/ExampleApp.java b/packages/ExampleApk/src/com/android/exampleapk/ExampleApp.java
+new file mode 100644
+index 000000000000..ceec9fd34382
+--- /dev/null
++++ b/packages/ExampleApk/src/com/android/exampleapk/ExampleApp.java
+@@ -0,0 +1,47 @@
++
++package com.android.exampleapk;
++
++import androidx.annotation.NonNull;
++import androidx.appcompat.app.AppCompatActivity;
++import android.content.Context;
++import android.content.Intent;
++import android.content.pm.ActivityInfo;
++import android.content.pm.PackageInfo;
++import android.content.pm.PackageManager;
++import android.os.Bundle;
++import android.text.TextUtils;
++import android.util.ArrayMap;
++import android.util.Log;
++import android.widget.ProgressBar;
++import android.widget.TextView;
++import android.content.res.Configuration;
++
++public class ExampleApp extends AppCompatActivity {
++
++    private static final String TAG = ExampleApp.class.getSimpleName();
++    private static final boolean DBG = true;
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        setContentView(R.layout.activity_example);
++
++    }
++
++    @Override
++    public void onConfigurationChanged(@NonNull Configuration newConfig) {
++        super.onConfigurationChanged(newConfig);
++        Log.e(TAG, " onConfigurationChanged: "+ newConfig);
++    }
++
++    @Override
++    public void onBackPressed() {
++        super.onBackPressed();
++    }
++
++    @Override
++    public void onDestroy() {
++        super.onDestroy();
++    }
++
++}
