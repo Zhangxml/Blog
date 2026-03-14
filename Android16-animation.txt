@@ -21,6 +21,13 @@ Transitions.java#
 		playTransitionWithTracing(ready):932
 		playTransition(active)   ----------------> 此处会调用startAnimation(),执行动画
 		setupAnimHierarchy(active.mInfo, active.mStartT, active.mFinishT)   挂载有关
+		
+
+// 默认动画实现		
+DefaultTransitionHandler.java
+	loadAnimation():834
+	loadAttributeAnimation():893
+	
 
 
 
@@ -33,4 +40,5 @@ CaptionWindowDecorViewModel.java
 
 
 FreeformTaskTransitionObserver.java  做一些动画前置操作
+
 

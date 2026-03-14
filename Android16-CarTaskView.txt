@@ -50,5 +50,6 @@ CarTaskViewHostAidlToImplAdapter.java   ICarTaskViewHost host的服务端
 
 TaskViewTaskController.java 管理surface
 
+RemoteCarTaskViewServerImpl.java   里边 持有 ICarTaskViewClient 服务端对象，给launcher进程接收 onTaskAppeared
 	
 		
